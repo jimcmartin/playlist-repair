@@ -46,6 +46,10 @@ Two product goals come from using Playlist Hospital, the existing tool: approve 
 - A Spicetify extension built on the same matching engine
 - Any server, account system or analytics
 
+**v1, due October 24, 2026**
+
+v1 is milestones 1 to 6, the setup guide, a README and a 30-second demo video. The repo is public and the app runs locally on `127.0.0.1`. Milestone 7 (hardening) and the rest of milestone 8 (the hosted site and the privacy page) come after v1.
+
 ## Architecture
 
 ```text
@@ -81,7 +85,7 @@ playlist-repair/
 ├── vite.config.ts           dev server bound to 127.0.0.1:5173
 ├── docs/
 │   ├── technical-plan.md    this file
-│   └── setup-guide.md       how to get a client ID (milestone 8)
+│   └── setup-guide.md       how to get a client ID (v1)
 ├── public/
 │   ├── CNAME                playlistrepair.com
 │   └── privacy.html
@@ -294,6 +298,8 @@ There are eight milestones, each small enough for one session and each ending in
 
 Milestone 5 carries the most product risk, since match quality is the reason to build this. Milestone 4 answers most of the open questions about the API.
 
+**Order for v1.** Milestones 3 and 4 come first, in the week of October 5. Milestone 2 has no dependency on them, so it moves to the week of October 12 with milestone 5. Milestone 6, the setup guide, the README and the demo video are the week of October 19.
+
 ## Working with Claude Code
 
 This plan is the brief, and each session implements one milestone from it. `CLAUDE.md` holds the standing rules and is read at the start of every session.
@@ -465,12 +471,12 @@ Summarise what you built and anything in the plan that proved wrong.
 
 ## Setup guide
 
-This is the draft of what each user follows. Check the wording against the live developer dashboard in milestone 8.
+This is the draft of what each user follows. For v1 it is written alongside milestone 6, after the run steps from the README, and the app runs locally. Check the wording against the live developer dashboard when writing it.
 
 1. You need Spotify Premium. Spotify requires it for the owner of a development-mode app.
 2. Go to `https://developer.spotify.com/dashboard`, log in, and choose **Create app**.
 3. Give it any name and description. The name must not contain "Spotify".
-4. Set the redirect URI to `https://playlistrepair.com/`, exactly as written, including the final slash.
+4. Set the redirect URI to `http://127.0.0.1:5173/`, exactly as written, including the final slash. Once the hosted site exists, this becomes `https://playlistrepair.com/`.
 5. Choose **Web API** when asked which API the app uses.
 6. Accept the terms and save.
 7. Open the app's settings and copy the **Client ID**. Do not copy the client secret. Playlist Repair never needs it.

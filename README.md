@@ -7,7 +7,8 @@ to a playable version of the same recording, and swaps them in after you approve
 backend, and each user connects with their own Spotify client ID.
 
 **Status:** early development. Only the project scaffold exists so far. The design and build
-order are in [docs/technical-plan.md](docs/technical-plan.md).
+order are in [docs/technical-plan.md](docs/technical-plan.md). The first version (v1) will run
+locally and include a setup guide; its scope is in the plan.
 
 ## Run it locally
 
