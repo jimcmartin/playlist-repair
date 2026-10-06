@@ -31,7 +31,8 @@ Two product goals come from using Playlist Hospital, the existing tool: approve 
 
 - Connect with a user-supplied client ID
 - List the playlists the user owns or collaborates on
-- Scan a playlist for unplayable tracks
+- Scan a playlist for unplayable tracks, and count its good, broken and local tracks
+- Replace local files with streaming versions, for playlists the user chooses
 - Find and rank replacement candidates for each one
 - Review screen with matches grouped by confidence, and bulk approval per group
 - Apply: insert replacements at the original positions, then remove the dead tracks
@@ -48,7 +49,7 @@ Two product goals come from using Playlist Hospital, the existing tool: approve 
 
 **v1, due October 24, 2026**
 
-v1 is milestones 1 to 6, the setup guide, a README and a 30-second demo video. The repo is public and the app runs locally on `127.0.0.1`. Milestone 7 (hardening) and the rest of milestone 8 (the hosted site and the privacy page) come after v1.
+v1 is milestones 1 to 6, the setup guide, a README and a 30-second demo video. Replacing local files is part of v1, because Jim's own playlists hold far more local files than broken tracks. The repo is public and the app runs locally on `127.0.0.1`. Milestone 7 (hardening) and the rest of milestone 8 (the hosted site and the privacy page) come after v1.
 
 ## Architecture
 
@@ -99,6 +100,7 @@ playlist-repair/
 ├── tests/
 │   ├── engine/              unit tests
 │   ├── spotify/             unit tests, with a fake `fetch`
+│   ├── repair/              unit tests for the repair flow, with a fake client
 │   ├── ui/                  unit tests for startup and screens
 │   ├── helpers/             fakes shared by the tests
 │   └── fixtures/            real dead-track and candidate pairs
@@ -121,7 +123,7 @@ The login reply is handled once at startup, before React renders, because a code
 
 **Redirect URI.** The redirect URI is the site root, `https://playlistrepair.com/`, with the trailing slash. Every static host serves the root, so this works without a router or host-specific rewrites. Local development uses `http://127.0.0.1:5173/`. The production value is permanent: every user registers it in their own Spotify app, so changing it later breaks their setup. The app picks the redirect URI from the origin it is served from. On any other origin, including `http://localhost:5173`, it shows a message pointing to `http://127.0.0.1:5173/` and does not start a login.
 
-**Scopes.** `playlist-read-private`, `playlist-read-collaborative`, `playlist-modify-private`, `playlist-modify-public`. Request nothing else unless milestone 4 shows search needs `user-read-private`.
+**Scopes.** `playlist-read-private`, `playlist-read-collaborative`, `playlist-modify-private`, `playlist-modify-public`. Request nothing else: milestone 4 showed search works without `user-read-private`.
 
 ## Spotify API usage
 
@@ -131,22 +133,24 @@ The login reply is handled once at startup, before React renders, because a code
 | List playlists | `GET /me/playlists` | 50 per page |
 | Playlist version | `GET /playlists/{id}?fields=snapshot_id` | Checked again just before writing |
 | Playlist contents | `GET /playlists/{id}/items` | 50 per page; each entry's track is under `item` (`track` is deprecated) |
-| Find candidates | `GET /search?type=track` | 10 results per request; supports `isrc:`, `track:`, `artist:` and `album:` filters |
+| Find candidates | `GET /search?type=track` | 10 results per request; supports `isrc:`, `track:`, `artist:` and `album:` filters. Checked on Oct 6, 2026: `isrc:` finds a known track, but `tracks.total` can say 0 while `items` holds a result, so read `items.length`, never `total` |
 | Insert | `POST /playlists/{id}/items` | Up to 100 URIs, with a zero-based `position` |
 | Remove | `DELETE /playlists/{id}/items` | Up to 100 `{ uri }` objects, with `snapshot_id` |
 
 **Client behavior.**
 
 - **Throttle.** At most 2 requests in flight. Spotify's rate limit is counted over a rolling 30-second window.
-- **429.** Wait for the `Retry-After` header, then retry. If the body's `reason` is `QUOTA_EXCEEDED`, stop, keep the work done so far, and tell the user to resume later.
+- **429.** Wait for the `Retry-After` header, then retry. A 429 also pauses the other request slot and the queue. If the body's `reason` is `QUOTA_EXCEEDED`, stop, keep the work done so far, and tell the user to resume later. A `Retry-After` over 60 seconds, or a request still limited after 5 retries, is treated the same way: stop and keep the work. With no readable `Retry-After`, wait 5 seconds.
+- **Quota.** Spotify counts the quota per developer account, not per client ID or user, in buckets of endpoints, and publishes neither the numbers nor the reset time. A full scan of 120 playlists costs about 360 requests, since each playlist needs at least one request plus one per 50 tracks. Avoid rescanning what is already scanned, and plan milestone 5's searches (up to 3 per broken track, up to 2 per local file) against this budget. The Playlists screen shows the estimated request count before searching, and local files are searched only for playlists the user chooses, with results cached by artist, title and duration so a file in several playlists is searched once.
+- **Paging.** Pages are requested by `offset`. The client builds every URL from the API base and never follows a `next` URL from a reply, so a reply cannot send the app to another host.
 - **401.** Refresh the token once and retry. If that fails, send the user back to Connect without losing the review state.
 - **Cache.** Search results are cached in memory by query for the session, and candidate lists by dead track URI.
-- **Market.** No `market` parameter is sent. With a user token Spotify uses the account's country, and the profile no longer exposes it. Confirm this in milestone 4.
+- **Market.** No `market` parameter is sent. With a user token Spotify uses the account's country, and the profile no longer exposes it. Confirmed in milestone 4 on Oct 6, 2026: a rescan with `market` set to US and to GB gave the same results as sending none.
 - **Validation.** Responses are checked with small hand-written guards for the fields the app reads. A missing field is handled, not assumed.
 
 ## Detecting broken tracks
 
-A playlist entry is broken when all of these hold:
+A playlist entry is broken when all of these hold. `is_playable` must be present: if Spotify leaves it out, the entry is unknown, not broken (it is the first open question below that decides how common that is).
 
 - `is_local` is false
 - `item` is a track, not an episode
@@ -160,7 +164,9 @@ Other cases are shown but not repaired:
 | `restrictions.reason` is `explicit` | Hidden by the user's explicit-content setting |
 | `restrictions.reason` is `product` | Not available on the user's plan |
 | `item` is null | Removed from Spotify, with nothing left to match |
-| Local file | Skipped |
+| Local file | Counted separately, and repaired only when the user includes local files for that playlist |
+| `restrictions.reason` is any other value | Shown as another restriction, not repaired |
+| `item.is_playable` is missing | Shown as unknown, not counted as broken or playable |
 
 ## Matching engine
 
@@ -203,6 +209,14 @@ Only candidates with `is_playable` true are scored.
 
 **Ties.** When several candidates share an ISRC, prefer the same album name, then an album over a compilation, then the closest duration.
 
+**Local files.** A local file has a title, artist, album and a duration in whole seconds, read from its tags, and nothing else: no ISRC, no ID, and an `explicit` flag that is only a default. The same fields are encoded in its `spotify:local:` URI, which is the fallback when a field is missing.
+
+- Search steps 2 and 3 only, since there is no ISRC. Try step 2 first and use step 3 only if it finds nothing usable.
+- A local file can never reach Exact, which needs a matching ISRC. At best it reaches High.
+- The explicit-flag cap does not apply, because the flag is unknown, not false.
+- Its matches are never preselected, even in High. The user selects them one by one or with "select all" for the group.
+- Tags are often messy, so the duration and album parts count for less when the file's value is missing.
+
 Weights and thresholds are starting values. They live in `src/config.ts` and are tuned against real fixtures in milestone 5.
 
 ## Applying a repair
@@ -222,6 +236,7 @@ Progress is tracked per track in memory, so Resume continues after an error inst
 - **Replacement already in the playlist.** The default action becomes remove-only, and the row says why.
 - **Dead track listed more than once.** Insert the replacement at each position. Milestone 6 confirms that removing by URI removes every occurrence.
 - **No match.** The track stays. "Remove anyway" is offered per track and is off by default.
+- **Local files.** Each local file is replaced like a dead track, and the backup file keeps its original entry. Removing a `spotify:local:` URI through the API is untested, so milestone 6 checks it on a copy and falls back to removing by position if URI removal fails.
 - **Someone else's collaborative playlist.** Listed with a label, and repaired only if the user can edit it.
 
 Replacements get today's date as their "date added". The backup file keeps the original dates, and the review screen says so before the user applies.
@@ -234,7 +249,7 @@ There is no router. One piece of state decides which screen shows.
 | --- | --- |
 | Setup | Pastes a client ID, with the setup guide beside the field |
 | Connect | Logs in with Spotify |
-| Playlists | Sees owned and collaborative playlists, scans one or all, and sees a broken count for each |
+| Playlists | Sees owned and collaborative playlists, chooses one and scans it, and sees how many tracks are good, broken and local. Then chooses "Find fixes", with a checkbox to include local files, which is off by default. The screen shows the estimated number of requests first. "Scan all" stays, and also shows its estimate and asks for confirmation before it sends anything |
 | Review | Sees broken tracks grouped by tier, selects a whole group or single rows, and picks a different candidate where needed |
 | Apply | Watches progress, and can resume after an error |
 | Done | Reads the summary and opens the playlist in Spotify |
@@ -349,6 +364,12 @@ remaster, a live version, a clean versus explicit pair, a compilation
 copy, a feat. credit moved between title and artist, and a track with no
 good match. Put weights and thresholds in src/config.ts.
 
+Also handle local files, as described in the plan's "Matching engine"
+section: no ISRC, an unknown explicit flag, and a duration in whole
+seconds. Add fixtures for a local file with a clear match, one with only
+a loose match, and one whose tags are missing, and test that none of
+them reach Exact.
+
 The engine must not import anything outside src/engine/ except config,
 and must not use fetch or the DOM. Add a lint rule or test that enforces
 this. Stop when the tests pass. Summarise what you built and anything in
@@ -406,7 +427,12 @@ In src/repair/, run the three-step search from the plan for each broken
 track, cache results, and pass candidates to the engine. Build the Review
 screen: tracks grouped by tier, select-all per group, per-row selection,
 a candidate picker for choosing a different match, and the differences
-between dead track and replacement marked on each row. Add the
+between dead track and replacement marked on each row.
+
+On the Playlists screen, add "Find fixes" for a scanned playlist, with a
+checkbox to include local files that is off by default and an estimated
+request count shown first. Local-file matches are never preselected.
+Cache searches by artist, title and duration. Add the
 development-only "export as fixture" action.
 
 I will run it on real playlists, export fixtures, and mark the correct
@@ -429,7 +455,9 @@ screens. Handle each edge case in the plan. Test the insert ordering,
 batching, resume after a failure at each step, and every edge case with
 a fake client.
 
-Inserts must always complete before any removal. I will test on a copy
+Inserts must always complete before any removal. Also test removing a
+local file by its spotify:local: URI on the copy, and report whether it
+works. If it does not, remove by position and say so in the plan. I will test on a copy
 of a real playlist, never an original, and tell you what I see. That
 test also answers whether removing by URI removes every occurrence;
 update the plan with the answer. Summarise what you built and anything
@@ -503,13 +531,20 @@ The largest risk is not technical: Spotify's Developer Policy may not allow the 
 
 **Open questions.**
 
-- [ ] Does omitting `market` return `is_playable` for playlist items and search results? (milestone 4)
-- [ ] Does search need the `user-read-private` scope to use the account's country? (milestone 4)
-- [ ] Which `restrictions.reason` values appear in real playlists, and can a greyed-out track have none? (milestone 4)
+Test case from Jim's playlists, Oct 6, 2026: "Step On It" by Robben Ford & The Blue Line (ISRC `USGR19200025`) is market-removed, and `isrc:USGR19200025` returns nothing, so it has no playable copy by ISRC. Its neighbour "Start It Up" (`USGR19200028`) is playable on the compilation "The Firm". Use the first as a "no match" fixture in milestone 5.
+
+A full scan of 120 playlists, Oct 6, 2026, covered 14,185 entries: 10,515 ok, 134 broken and 3,536 local files. There were no removed (null-item), unknown, `explicit`, `product` or other-restriction entries. So no removed track has been seen on this account, and the question of what one looks like is open for another account.
+
+Real data from Jim's playlists, Oct 6, 2026: a local file has `is_local: true`, a `spotify:local:` URI, `id: null` and no `is_playable`. Local files are counted as skipped, and a playlist of imported files can show 0 broken.
+
+- [x] Does omitting `market` return `is_playable` for playlist items and search results? (milestone 4) **Yes, for both, checked on Jim's account on Oct 6, 2026. Playlist items had `is_playable` true and false with no `market` sent. A plain-text search for "Step On It Robben Ford" returned 10 results, every one with `is_playable: true`. Rescanning a playlist with `market` set to US and to GB changed nothing. Not yet seen: a search result with `is_playable: false`, so it is not known whether search hides unplayable tracks. Milestone 5 still scores only playable candidates.**
+- [x] Does search need the `user-read-private` scope to use the account's country? (milestone 4) **No. Search worked with only the four playlist scopes on Oct 6, 2026, with no 403. The scopes stay as they are. Whether results follow the account's country is not directly visible, but every result came back playable.**
+- [ ] Which `restrictions.reason` values appear in real playlists, and can a greyed-out track have none? (milestone 4) *Partly answered on Oct 6, 2026: on one playlist, all 4 tracks with `is_playable: false` had reason `market`, and none had no reason. Other values (`explicit`, `product`) have not been seen, and one playlist is a small sample.*
 - [x] Does the app owner need to add themselves under User Management, or are they allowed automatically? (milestone 3) **No. The owner is allowed automatically: Jim logged in on Oct 6, 2026 without adding his account.**
 - [ ] Does removing by URI remove every occurrence of that track? (milestone 6)
-- [ ] Which image hosts does album art come from, for the Content Security Policy? (milestone 4)
-- [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows.
+- [ ] Can a `spotify:local:` entry be removed by URI, or only by position? (milestone 6)
+- [x] Which image hosts does album art come from, for the Content Security Policy? (milestone 4) **Four hosts seen on Jim's playlists on Oct 6, 2026: `i.scdn.co` (album art), `mosaic.scdn.co`, `image-cdn-ak.spotifycdn.com` and `image-cdn-fa.spotifycdn.com`. The `-ak` and `-fa` names suggest more CDN variants exist, so milestone 7 should allow `https://*.scdn.co` and `https://*.spotifycdn.com` in `img-src`, not just these four.**
+- [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows. *Partly answered on Oct 6, 2026. The rate limit was never hit: 0 rate limits over about 800 requests at 2 in flight, so the throttle stays at 2. The quota was hit: a first "Scan all" sent 437 requests with no limit, and a second one stopped with 2 `QUOTA_EXCEEDED` replies after 360 requests, having scanned 120 playlists. That is about 800 requests in one session. Spotify publishes no numbers or reset time. The reset time is still unknown: Jim should try again later and report when scanning works again.*
 - [ ] Is the hosted site acceptable under Developer Policy section VII.2, or should the project be self-run only?
 
 ## Sources

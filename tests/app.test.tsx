@@ -1,13 +1,18 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/ui/App';
 import type { View } from '../src/ui/boot';
+import { MemoryStore } from './helpers/fakes';
 
 const REDIRECT_URI = 'http://127.0.0.1:5173/';
 const CLIENT_ID = '0123456789abcdef0123456789abcdef';
 
 const render = (initial: View) =>
   renderToStaticMarkup(<App initial={initial} redirectUri={REDIRECT_URI} />);
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('App', () => {
   it('shows the app name with the tagline outside the heading', () => {
@@ -38,14 +43,23 @@ describe('App', () => {
     expect(html).toContain('Log in with Spotify');
   });
 
-  it('shows the display name once connected', () => {
+  it('shows the display name on the Playlists screen', () => {
+    // The screen builds its client from the browser's storage and fetch.
+    vi.stubGlobal('window', {
+      sessionStorage: new MemoryStore(),
+      localStorage: new MemoryStore(),
+      fetch: vi.fn(),
+      crypto: globalThis.crypto,
+      location: { origin: 'http://127.0.0.1:5173', search: '' },
+    });
     const html = render({
-      screen: 'connected',
+      screen: 'playlists',
       clientId: CLIENT_ID,
       profile: { id: 'jim', displayName: 'Jim M' },
     });
 
-    expect(html).toContain('Connected as <strong>Jim M</strong>');
+    expect(html).toContain('<strong>Jim M</strong>');
+    expect(html).toContain('Loading your playlists');
     expect(html).toContain('Log out');
   });
 });

@@ -1,35 +1,61 @@
-import { API_BASE_URL } from '../config';
-import type { FetchLike } from './auth';
-import { parseProfile, type Profile } from './types';
+import { PAGE_SIZE } from '../config';
+import { BadResponseError, type SpotifyClient } from './client';
+import {
+  parseItemsPage,
+  parsePlaylistPage,
+  parseProfile,
+  type PlaylistEntry,
+  type PlaylistSummary,
+  type Profile,
+} from './types';
 
-/** `status` is the HTTP status, or null when the request never got a response. */
-export class ApiError extends Error {
-  readonly status: number | null;
+/** GET /me: who is logged in. */
+export async function getProfile(client: SpotifyClient): Promise<Profile> {
+  const profile = parseProfile(await client.get('/me'));
+  if (profile === null) throw new BadResponseError('GET /me returned no user id');
+  return profile;
+}
 
-  constructor(status: number | null, message: string) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
+export interface PlaylistList {
+  playlists: PlaylistSummary[];
+  /** Entries Spotify returned that could not be read. */
+  dropped: number;
+}
+
+/** GET /me/playlists, every page. Pages by offset and never follows a `next` URL. */
+export async function listPlaylists(client: SpotifyClient): Promise<PlaylistList> {
+  const playlists: PlaylistSummary[] = [];
+  let dropped = 0;
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const page = parsePlaylistPage(await client.get('/me/playlists', { limit: PAGE_SIZE, offset }));
+    if (page === null) throw new BadResponseError('GET /me/playlists returned no items list');
+    playlists.push(...page.playlists);
+    dropped += page.dropped;
+    if (!page.hasNext) return { playlists, dropped };
   }
 }
 
-/** GET /me: who is logged in. */
-export async function getProfile(fetchFn: FetchLike, accessToken: string): Promise<Profile> {
-  let response: Response;
-  let json: unknown;
-  try {
-    response = await fetchFn(`${API_BASE_URL}/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    json = await response.json().catch(() => null);
-  } catch {
-    throw new ApiError(null, 'GET /me got no response');
-  }
-  if (!response.ok) {
-    throw new ApiError(response.status, `GET /me returned ${String(response.status)}`);
-  }
+export interface ItemsOptions {
+  /** Sent only when set. The app sends none by default. */
+  market?: string;
+  onPage?: (entriesSoFar: number, total: number | null) => void;
+}
 
-  const profile = parseProfile(json);
-  if (profile === null) throw new ApiError(response.status, 'GET /me returned no user id');
-  return profile;
+/** GET /playlists/{id}/items, every page, with no `fields` filter so the raw entry is complete. */
+export async function getPlaylistItems(
+  client: SpotifyClient,
+  playlistId: string,
+  options: ItemsOptions = {},
+): Promise<PlaylistEntry[]> {
+  const path = `/playlists/${encodeURIComponent(playlistId)}/items`;
+  const entries: PlaylistEntry[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const page = parseItemsPage(
+      await client.get(path, { limit: PAGE_SIZE, offset, market: options.market }),
+    );
+    if (page === null) throw new BadResponseError('GET /playlists/{id}/items returned no items');
+    entries.push(...page.entries);
+    options.onPage?.(entries.length, page.total);
+    if (!page.hasNext) return entries;
+  }
 }

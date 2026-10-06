@@ -38,3 +38,23 @@ export const STORAGE_KEYS = {
 
 /** Refresh an access token this long before it expires. */
 export const TOKEN_REFRESH_MARGIN_MS = 60_000;
+
+// --- Spotify client ----------------------------------------------------------
+
+/** Requests in flight at once. Spotify counts its rate limit over a rolling 30 seconds. */
+export const MAX_CONCURRENT_REQUESTS = 2;
+
+/** Entries per page for /me/playlists and /playlists/{id}/items. 50 is Spotify's maximum. */
+export const PAGE_SIZE = 50;
+
+/** How long to wait after a 429 that has no readable Retry-After header. */
+export const RATE_LIMIT_DEFAULT_WAIT_MS = 5_000;
+
+/** A Retry-After longer than this stops the work instead of waiting silently. */
+export const RATE_LIMIT_MAX_WAIT_MS = 60_000;
+
+/** How many times one request is retried after a 429 before the work stops. */
+export const RATE_LIMIT_MAX_RETRIES = 5;
+
+/** Playlists scanned at once by "Scan all". The client's throttle still applies. */
+export const SCAN_ALL_CONCURRENCY = 2;

@@ -56,3 +56,75 @@ export const NOW = 1_800_000_000_000;
 export function authEnv(fetch: FetchLike, session = new MemoryStore()): AuthEnv {
   return { session, fetch, crypto: globalThis.crypto, now: () => NOW };
 }
+
+// --- Spotify client ------------------------------------------------------------
+
+export interface RoutedCall {
+  url: string;
+  headers: Headers;
+}
+
+/**
+ * A fetch that answers by calling `handler` for every request. Unlike
+ * `fakeFetch` it does not depend on the order requests arrive in, so it suits
+ * tests that run requests at the same time.
+ */
+export function routedFetch(handler: (call: RoutedCall) => Response | Error | Promise<Response>): {
+  fetch: FetchLike;
+  calls: RoutedCall[];
+  maxInFlight: () => number;
+} {
+  const calls: RoutedCall[] = [];
+  let inFlight = 0;
+  let peak = 0;
+  const fetch: FetchLike = async (url, init) => {
+    const call = { url, headers: new Headers(init?.headers) };
+    calls.push(call);
+    inFlight += 1;
+    peak = Math.max(peak, inFlight);
+    try {
+      // Yield once, so overlapping requests really overlap.
+      await Promise.resolve();
+      const reply = await handler(call);
+      if (reply instanceof Error) throw reply;
+      return reply;
+    } finally {
+      inFlight -= 1;
+    }
+  };
+  return { fetch, calls, maxInFlight: () => peak };
+}
+
+/** A sleep that returns at once and records how long it was asked to wait. */
+export function fakeSleep(): { sleep: (ms: number) => Promise<void>; waits: number[] } {
+  const waits: number[] = [];
+  return {
+    sleep: (ms) => {
+      waits.push(ms);
+      return Promise.resolve();
+    },
+    waits,
+  };
+}
+
+export function tooManyRequests(retryAfter?: string, body: unknown = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status: 429,
+    headers: retryAfter === undefined ? {} : { 'Retry-After': retryAfter },
+  });
+}
+
+export const API = 'https://api.spotify.com/v1';
+
+export function loggedInSession(): MemoryStore {
+  const session = new MemoryStore();
+  session.setItem(
+    'playlist-repair.tokens',
+    JSON.stringify({
+      accessToken: 'access-0',
+      refreshToken: 'refresh-0',
+      expiresAt: NOW + 3_600_000,
+    }),
+  );
+  return session;
+}

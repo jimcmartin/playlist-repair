@@ -38,6 +38,13 @@ async function mockTokenAndProfile(page: Page) {
     }
     await route.fulfill({ headers: CORS, json: { id: 'tester', display_name: 'Test User' } });
   });
+  await page.route('https://api.spotify.com/v1/me/playlists?*', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS });
+      return;
+    }
+    await route.fulfill({ headers: CORS, json: { items: [], next: null } });
+  });
 
   return tokenRequests;
 }

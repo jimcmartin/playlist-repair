@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { LOCAL_REDIRECT_URI } from '../config';
 import { beginLogin, logout, saveClientId } from '../spotify/auth';
 import { browserEnv, type View } from './boot';
-import { ConnectedScreen } from './ConnectedScreen';
 import { ConnectScreen } from './ConnectScreen';
 import { Layout } from './Layout';
+import { PlaylistsScreen } from './PlaylistsScreen';
 import { describeError } from './messages';
 import { SetupScreen } from './SetupScreen';
 
@@ -35,6 +35,15 @@ export function App({ initial, redirectUri }: Props) {
     logout(env.session, env.local);
     setView({ screen: 'setup', loggedOut });
   }
+
+  const handleSessionEnded = useCallback(
+    (message: string) => {
+      if (view.screen === 'playlists') {
+        setView({ screen: 'connect', clientId: view.clientId, error: message });
+      }
+    },
+    [view],
+  );
 
   return <Layout>{renderScreen()}</Layout>;
 
@@ -72,10 +81,12 @@ export function App({ initial, redirectUri }: Props) {
             }}
           />
         );
-      case 'connected':
+      case 'playlists':
         return (
-          <ConnectedScreen
+          <PlaylistsScreen
             profile={view.profile}
+            clientId={view.clientId}
+            onSessionEnded={handleSessionEnded}
             onLogout={() => {
               handleForget(true);
             }}

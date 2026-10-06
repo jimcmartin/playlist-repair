@@ -7,6 +7,7 @@ import {
   type AuthEnv,
   type KeyValueStore,
 } from '../spotify/auth';
+import { createClient, realSleep } from '../spotify/client';
 import { getProfile } from '../spotify/endpoints';
 import type { Profile } from '../spotify/types';
 import { describeError, NO_CLIENT_ID_FOR_REPLY } from './messages';
@@ -16,7 +17,7 @@ export type View =
   | { screen: 'wrong-address' }
   | { screen: 'setup'; error?: string; loggedOut?: boolean }
   | { screen: 'connect'; clientId: string; error?: string }
-  | { screen: 'connected'; clientId: string; profile: Profile };
+  | { screen: 'playlists'; clientId: string; profile: Profile };
 
 export interface BrowserEnv extends AuthEnv {
   /** localStorage: the client ID only. */
@@ -62,9 +63,10 @@ export async function boot(env: BrowserEnv): Promise<View> {
     if (isLoginReply) await completeLogin(env, clientId, redirectUri, params);
     if (readTokens(env.session) === null) return { screen: 'connect', clientId };
 
-    const accessToken = await getAccessToken(env, clientId);
-    const profile = await getProfile(env.fetch, accessToken);
-    return { screen: 'connected', clientId, profile };
+    // Refresh up front if the token is stale, so a reload does not start with a 401.
+    await getAccessToken(env, clientId);
+    const profile = await getProfile(createClient({ env, clientId, sleep: realSleep }));
+    return { screen: 'playlists', clientId, profile };
   } catch (error) {
     return { screen: 'connect', clientId, error: describeError(error) };
   }

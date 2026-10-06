@@ -61,7 +61,7 @@ describe('boot', () => {
     const view = await boot(env);
 
     expect(view).toEqual({
-      screen: 'connected',
+      screen: 'playlists',
       clientId: CLIENT_ID,
       profile: { id: 'jim', displayName: 'Jim M' },
     });
@@ -119,7 +119,7 @@ describe('boot', () => {
     const view = await boot(env);
 
     // With no display name, the user ID stands in.
-    expect(view).toMatchObject({ screen: 'connected', profile: { displayName: 'jim' } });
+    expect(view).toMatchObject({ screen: 'playlists', profile: { displayName: 'jim' } });
     expect(calls.map((call) => call.url)).toEqual([ME_URL]);
     expect(calls[0]?.headers.get('Authorization')).toBe('Bearer access-0');
   });
@@ -134,7 +134,7 @@ describe('boot', () => {
     local.setItem(STORAGE_KEYS.clientId, CLIENT_ID);
     logIn(session, NOW - 1);
 
-    expect(await boot(env)).toMatchObject({ screen: 'connected' });
+    expect(await boot(env)).toMatchObject({ screen: 'playlists' });
     expect(calls[1]?.headers.get('Authorization')).toBe('Bearer access-1');
   });
 
