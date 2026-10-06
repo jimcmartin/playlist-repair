@@ -1,0 +1,127 @@
+:root {
+  color-scheme: light dark;
+  --text: #1c1b22;
+  --muted: #5c5a66;
+  --surface: #ffffff;
+  --border: #c9c7d1;
+  --accent: #4338ca;
+  --accent-text: #ffffff;
+  --error: #b42318;
+  --notice-surface: #eef0ff;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #ececf1;
+    --muted: #a9a7b4;
+    --surface: #17161c;
+    --border: #45434f;
+    --accent: #a5b4fc;
+    --accent-text: #17161c;
+    --error: #ffa29a;
+    --notice-surface: #25243a;
+  }
+}
+
+body {
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  max-width: 40rem;
+}
+
+.site-header {
+  margin-bottom: 2rem;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.tagline,
+.fine-print {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.fine-print {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  overflow-wrap: anywhere;
+}
+
+li {
+  margin-bottom: 0.4rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+input[type='text'] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.secondary {
+  color: var(--accent);
+  background: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.error {
+  color: var(--error);
+}
+
+.notice {
+  padding: 0.75rem 1rem;
+  background: var(--notice-surface);
+  border-radius: 6px;
+}

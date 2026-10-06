@@ -6,7 +6,7 @@ A browser-only web app that finds greyed-out tracks in your Spotify playlists, m
 to a playable version of the same recording, and swaps them in after you approve. It has no
 backend, and each user connects with their own Spotify client ID.
 
-**Status:** early development. Only the project scaffold exists so far. The design and build
+**Status:** early development. Setup and Spotify login work; scanning and repair do not exist yet. The design and build
 order are in [docs/technical-plan.md](docs/technical-plan.md). The first version (v1) will run
 locally and include a setup guide; its scope is in the plan.
 

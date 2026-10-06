@@ -98,6 +98,9 @@ playlist-repair/
 │   └── ui/
 ├── tests/
 │   ├── engine/              unit tests
+│   ├── spotify/             unit tests, with a fake `fetch`
+│   ├── ui/                  unit tests for startup and screens
+│   ├── helpers/             fakes shared by the tests
 │   └── fixtures/            real dead-track and candidate pairs
 ├── e2e/                     Playwright, against a mocked API
 └── .github/workflows/       check on every push, deploy on main
@@ -112,9 +115,11 @@ The app uses Authorization Code with PKCE, which needs no client secret.
 3. Spotify redirects back to the site root with `?code=` and `state`. The app checks `state`, exchanges the code at `https://accounts.spotify.com/api/token`, and removes the query string with `history.replaceState`.
 4. Tokens live in `sessionStorage` and are gone when the tab closes.
 5. Access tokens last one hour. The client refreshes with `grant_type=refresh_token`, the refresh token and the client ID, and keeps a new refresh token if one comes back.
-6. Log out clears both stores and links to Spotify's "Manage apps" page so the user can revoke access.
+6. Log out clears both stores and links to Spotify's "Manage apps" page so the user can revoke access. It removes the app's own keys only, since other projects served from `127.0.0.1:5173` share the same storage.
 
-**Redirect URI.** The redirect URI is the site root, `https://playlistrepair.com/`, with the trailing slash. Every static host serves the root, so this works without a router or host-specific rewrites. Local development uses `http://127.0.0.1:5173/`. The production value is permanent: every user registers it in their own Spotify app, so changing it later breaks their setup.
+The login reply is handled once at startup, before React renders, because a code can only be exchanged once and React's StrictMode runs effects twice in development. Concurrent refreshes share one request, because Spotify replaces the refresh token on use.
+
+**Redirect URI.** The redirect URI is the site root, `https://playlistrepair.com/`, with the trailing slash. Every static host serves the root, so this works without a router or host-specific rewrites. Local development uses `http://127.0.0.1:5173/`. The production value is permanent: every user registers it in their own Spotify app, so changing it later breaks their setup. The app picks the redirect URI from the origin it is served from. On any other origin, including `http://localhost:5173`, it shows a message pointing to `http://127.0.0.1:5173/` and does not start a login.
 
 **Scopes.** `playlist-read-private`, `playlist-read-collaborative`, `playlist-modify-private`, `playlist-modify-public`. Request nothing else unless milestone 4 shows search needs `user-read-private`.
 
@@ -501,7 +506,7 @@ The largest risk is not technical: Spotify's Developer Policy may not allow the 
 - [ ] Does omitting `market` return `is_playable` for playlist items and search results? (milestone 4)
 - [ ] Does search need the `user-read-private` scope to use the account's country? (milestone 4)
 - [ ] Which `restrictions.reason` values appear in real playlists, and can a greyed-out track have none? (milestone 4)
-- [ ] Does the app owner need to add themselves under User Management, or are they allowed automatically? (milestone 3)
+- [x] Does the app owner need to add themselves under User Management, or are they allowed automatically? (milestone 3) **No. The owner is allowed automatically: Jim logged in on Oct 6, 2026 without adding his account.**
 - [ ] Does removing by URI remove every occurrence of that track? (milestone 6)
 - [ ] Which image hosts does album art come from, for the Content Security Policy? (milestone 4)
 - [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows.
