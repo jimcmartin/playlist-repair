@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 0. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Antenna:Pincushion:268",
+    "title": "Pincushion",
+    "artists": ["ZZ Top"],
+    "album": "Antenna",
+    "durationMs": 268000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:0Sfg0Pri6NypRrd6DYiWJc",
+      "title": "Pincushion",
+      "artists": ["ZZ Top"],
+      "album": "Antenna",
+      "albumType": "album",
+      "durationMs": 273360,
+      "isrc": "USRC19300187",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5E9Ry4LH1mEO87yWUH0qH9",
+      "title": "Pincushion",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 273360,
+      "isrc": "USRC19300187",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5JSjO6K8EHJVF5Xwfq5hzg",
+      "title": "Pincushion - Live from Berlin",
+      "artists": ["ZZ Top"],
+      "album": "Live! Greatest Hits from Around the World",
+      "albumType": "compilation",
+      "durationMs": 265169,
+      "isrc": "QMBGD1600014",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:0Sfg0Pri6NypRrd6DYiWJc"
+}

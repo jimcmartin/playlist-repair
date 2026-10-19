@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 6. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:I+Don%60t+Know:343",
+    "title": "I Don`t Know",
+    "artists": ["Ozzy Osbourne"],
+    "album": "Randy Rhoads - Tribute",
+    "durationMs": 343000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:2lxq02Zit1kI8S0THAYkAZ",
+      "title": "I Don't Know",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 315215,
+      "isrc": "USSM11002844",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6cpcowQ1kLPehuwFQHxUgp",
+      "title": "I Don't Know - Live 1981",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Tribute",
+      "albumType": "album",
+      "durationMs": 340940,
+      "isrc": "USSM18700032",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1fV3bdx8doMfHyii415LHa",
+      "title": "I Don't Know - Live at Budokan Hall, Tokyo, Japan - February 2002",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Live At Budokan",
+      "albumType": "album",
+      "durationMs": 351933,
+      "isrc": "USSM10202684",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:18cdLyzmIknZbdOQTl76Co",
+      "title": "I Don't Know - Live from Blizzard Of Ozz tour",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 296688,
+      "isrc": "USSM11102079",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1YOmhcs4uRm0lG2GKPCb8r",
+      "title": "I Don't Know - Live at Orlando Arena, Orlando, FL - August 1992",
+      "artists": ["Ozzy Osbourne"],
+      "album": "LIVE & LOUD",
+      "albumType": "album",
+      "durationMs": 313626,
+      "isrc": "USSM19300047",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4SpVv6qTreG73nWIgSgriG",
+      "title": "I Don't Know - Live 1981",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 342135,
+      "isrc": "USSM18700032",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6Tu7t4fmMuO7c4mnOogctD",
+      "title": "I Don't Know - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "I Don't Know (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 303551,
+      "isrc": "USSM20200586",
+      "explicit": true,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:6cpcowQ1kLPehuwFQHxUgp"
+}

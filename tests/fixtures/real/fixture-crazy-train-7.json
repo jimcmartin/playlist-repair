@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 7. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:Crazy+Train:322",
+    "title": "Crazy Train",
+    "artists": ["Ozzy Osbourne"],
+    "album": "Randy Rhoads - Tribute",
+    "durationMs": 322000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:7ACxUo21jtTHzy7ZEV56vU",
+      "title": "Crazy Train",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 293183,
+      "isrc": "USSM11002845",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2l6mxqDEbISPOhF3k2bJ9G",
+      "title": "Crazy Train - Live 1981",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Tribute",
+      "albumType": "album",
+      "durationMs": 320357,
+      "isrc": "USSM18700020",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1Lm6B6aXsBhcsxrimyhkJb",
+      "title": "Crazy Train",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 292710,
+      "isrc": "USSM11002845",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5kUdKwPCyamXAKGgF1WnCk",
+      "title": "Crazy Train",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Memoirs of a Madman",
+      "albumType": "compilation",
+      "durationMs": 291008,
+      "isrc": "USSM11002845",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5oPNIPz2zhFZiJoXYolDud",
+      "title": "Crazy Train - 2002 Version",
+      "artists": ["Ozzy Osbourne"],
+      "album": "50 Classic Rock Favorites",
+      "albumType": "compilation",
+      "durationMs": 290026,
+      "isrc": "USSM10204723",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:07YNHp2rA1HgGMgNor96wX",
+      "title": "Crazy Train",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Crazy Train",
+      "albumType": "single",
+      "durationMs": 245248,
+      "isrc": "USSM21401221",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1kMumebMfCEUq6uznjuL1q",
+      "title": "Crazy Train - 2002 Version",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Osbourne Family Album",
+      "albumType": "compilation",
+      "durationMs": 290093,
+      "isrc": "USSM10204723",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5ZDiWvOVFoPLWtq01MLX5W",
+      "title": "Crazy Train - Live from iTunes Festival, London, 2010",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Crazy Train",
+      "albumType": "single",
+      "durationMs": 336789,
+      "isrc": "USSM21800701",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7GVZRP7kw24DRVXqNjYlyI",
+      "title": "Crazy Train - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Crazy Train (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 400789,
+      "isrc": "USSM20200598",
+      "explicit": true,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:2l6mxqDEbISPOhF3k2bJ9G"
+}

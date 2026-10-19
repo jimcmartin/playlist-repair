@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 11. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:Suicide+Solution:290",
+    "title": "Suicide Solution",
+    "artists": ["Ozzy Osbourne"],
+    "album": "Randy Rhoads - Tribute",
+    "durationMs": 290000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:7vGOHxPXPDEc3YOyihLuPt",
+      "title": "Suicide Solution",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 258078,
+      "isrc": "USSM11002848",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:54AwCHHkxWHmdywQXDYOR4",
+      "title": "Suicide Solution - Live 1981",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Tribute",
+      "albumType": "album",
+      "durationMs": 466323,
+      "isrc": "USSM18700025",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4ioDzE2PV43PM7LIfQz2uj",
+      "title": "Suicide Solution - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Suicide Solution (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 302208,
+      "isrc": "USSM20200590",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0Ju3Qy1QoObL7vqnUz7NZM",
+      "title": "Suicide Solution - Live at Miami Arena, Miami, FL - August 1992",
+      "artists": ["Ozzy Osbourne"],
+      "album": "LIVE & LOUD",
+      "albumType": "album",
+      "durationMs": 303093,
+      "isrc": "USSM19300051",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:607yXeCObemXCu1oxyMfNb",
+      "title": "Suicide Solution",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 258127,
+      "isrc": "USSM11002848",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5ctUOUKUd6IY5D8vR9YBzg",
+      "title": "Suicide Solution - Live from Blizzard Of Ozz tour",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 456077,
+      "isrc": "USSM11102075",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:54AwCHHkxWHmdywQXDYOR4"
+}

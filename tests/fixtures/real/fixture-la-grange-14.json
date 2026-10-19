@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 14. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Greatest+Hits:La+Grange:228",
+    "title": "La Grange",
+    "artists": ["ZZ Top"],
+    "album": "Greatest Hits",
+    "durationMs": 228000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:0u6JFVn0KHHlidZxNL9gVE",
+      "title": "La Grange (2005 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Tres Hombres (Expanded 2006 Remaster)",
+      "albumType": "album",
+      "durationMs": 230480,
+      "isrc": "USWB10505222",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2YgjwTiG85B2tvqmdRNpba",
+      "title": "La Grange",
+      "artists": ["ZZ Top"],
+      "album": "RAW (‘That Little Ol' Band From Texas’ Original Soundtrack)",
+      "albumType": "album",
+      "durationMs": 281586,
+      "isrc": "QMRSZ2200138",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4VacZr5IQjugPpwovkyIUK",
+      "title": "La Grange (Live)",
+      "artists": ["ZZ Top"],
+      "album": "Tres Hombres (Expanded 2006 Remaster)",
+      "albumType": "album",
+      "durationMs": 284040,
+      "isrc": "USWB10505227",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1MVqP6dzp0EZ2T4TpAxWnS",
+      "title": "La Grange - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 232506,
+      "isrc": "USWB11901049",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6VlsHsJWyKBP6YooY3xVA6",
+      "title": "La Grange (1999 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "ZZ Top's Greatest Hits",
+      "albumType": "compilation",
+      "durationMs": 232533,
+      "isrc": "USWB19902793",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2Ja96UmPNkP8vyQ6YQqM7O",
+      "title": "La Grange",
+      "artists": ["ZZ Top"],
+      "album": "The ZZ Top Sixpack",
+      "albumType": "album",
+      "durationMs": 234106,
+      "isrc": "USWB19903511",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2Kuw9tXsrr3HYOG5XHHPDw",
+      "title": "La Grange",
+      "artists": ["ZZ Top"],
+      "album": "70s HITS - 100 Greatest Songs of the 1970s",
+      "albumType": "compilation",
+      "durationMs": 230480,
+      "isrc": "USWB10505222",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0ZGyV1Tycf8I4LxiLY5DkA",
+      "title": "La Grange",
+      "artists": ["ZZ Top"],
+      "album": "70's Rock Classics",
+      "albumType": "compilation",
+      "durationMs": 234106,
+      "isrc": "USWB19903511",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7vvivVeV7kKFQOTZzycHD3",
+      "title": "La Grange (2005 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "The Very Baddest of... ZZ Top",
+      "albumType": "album",
+      "durationMs": 230480,
+      "isrc": "USWB10505222",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2SQIzvh3BZWmWd9cVhoTMR",
+      "title": "La Grange (2019 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "album",
+      "durationMs": 232506,
+      "isrc": "USWB11901049",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:0u6JFVn0KHHlidZxNL9gVE"
+}

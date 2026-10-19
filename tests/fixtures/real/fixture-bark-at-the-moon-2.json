@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 2. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:The+Ozzman+Cometh%3A+Greatest+Hits+%5BUS%5D+Disc+1:Bark+at+the+Moon:254",
+    "title": "Bark at the Moon",
+    "artists": ["Ozzy Osbourne"],
+    "album": "The Ozzman Cometh: Greatest Hits [US] Disc 1",
+    "durationMs": 254000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:2E7W1X4maFFcjHrVrFA7Vs",
+      "title": "Bark at the Moon",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Bark At The Moon (Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 257126,
+      "isrc": "USSM18300021",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3NMCIU2ZVIQ5PU0uIIb3kl",
+      "title": "Bark at the Moon - Live at Budokan Hall, Tokyo, Japan - February 2002",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Live At Budokan",
+      "albumType": "album",
+      "durationMs": 269626,
+      "isrc": "USSM10202698",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:74fLsLnQCJk4RX5suTBkYm",
+      "title": "Bark at the Moon - Live at Orlando Arena, Orlando, FL - August 1992",
+      "artists": ["Ozzy Osbourne"],
+      "album": "LIVE & LOUD",
+      "albumType": "album",
+      "durationMs": 328733,
+      "isrc": "USSM19300081",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4CQ5ZH5JirgHnxE9DsciTs",
+      "title": "Bark at the Moon",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 256316,
+      "isrc": "USSM18300021",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:72K4GWvzHzBRpz7NnkxXNs",
+      "title": "Bark At The Moon - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Bark At The Moon (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 302911,
+      "isrc": "USSM20200596",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4uRKTlDFTeSdsuH3GKamuy",
+      "title": "Bark at the Moon",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Halloween Classics: Hellbent For Halloween",
+      "albumType": "compilation",
+      "durationMs": 256600,
+      "isrc": "USSM18300021",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0cdCD2GTT8aIennaIYDeJl",
+      "title": "Bark at the Moon",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Memoirs of a Madman",
+      "albumType": "compilation",
+      "durationMs": 257281,
+      "isrc": "USSM18300021",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:2E7W1X4maFFcjHrVrFA7Vs"
+}

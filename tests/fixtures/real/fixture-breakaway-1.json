@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 1. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Antenna:Breakaway:294",
+    "title": "Breakaway",
+    "artists": ["ZZ Top"],
+    "album": "Antenna",
+    "durationMs": 294000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:3k6T3I7uuRGL96rWFTucgb",
+      "title": "Breakaway",
+      "artists": ["ZZ Top"],
+      "album": "Antenna",
+      "albumType": "album",
+      "durationMs": 297400,
+      "isrc": "USRC19300188",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3bkZGho49FcyN2iF1zlez3",
+      "title": "Breakaway",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 297386,
+      "isrc": "USRC19300188",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:3k6T3I7uuRGL96rWFTucgb"
+}

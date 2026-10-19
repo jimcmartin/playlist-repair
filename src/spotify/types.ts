@@ -110,6 +110,9 @@ export interface PlaylistItem {
   name: string | null;
   artists: TrackArtist[];
   albumName: string | null;
+  albumId: string | null;
+  /** `album`, `single`, `compilation`, or whatever Spotify sent. */
+  albumType: string | null;
   durationMs: number | null;
   explicit: boolean | null;
   isrc: string | null;
@@ -158,6 +161,8 @@ function parseItem(json: unknown): PlaylistItem | null {
     name: readString(json.name),
     artists: parseArtists(json.artists),
     albumName: album ? readString(album.name) : null,
+    albumId: album ? readString(album.id) : null,
+    albumType: album ? readString(album.album_type) : null,
     durationMs: typeof json.duration_ms === 'number' ? json.duration_ms : null,
     explicit: typeof json.explicit === 'boolean' ? json.explicit : null,
     isrc: externalIds ? readString(externalIds.isrc) : null,
@@ -196,4 +201,20 @@ export function parseItemsPage(json: unknown): ItemsPage | null {
     total: typeof json.total === 'number' ? json.total : null,
     hasNext: typeof json.next === 'string',
   };
+}
+
+// --- Search ------------------------------------------------------------------
+
+/**
+ * Reads a GET /search?type=track reply, or returns null if it has no `tracks.items`
+ * array. The count is the length of `items`: `total` can say 0 while `items` holds a result.
+ */
+export function parseSearchPage(json: unknown): PlaylistItem[] | null {
+  if (!isRecord(json) || !isRecord(json.tracks) || !Array.isArray(json.tracks.items)) return null;
+  const tracks: PlaylistItem[] = [];
+  for (const raw of json.tracks.items as unknown[]) {
+    const item = parseItem(raw);
+    if (item?.type === 'track') tracks.push(item);
+  }
+  return tracks;
 }

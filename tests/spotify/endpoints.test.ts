@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createClient } from '../../src/spotify/client';
-import { getPlaylistItems, getProfile, listPlaylists } from '../../src/spotify/endpoints';
-import { parseItemsPage, parsePlaylistPage } from '../../src/spotify/types';
+import { BadResponseError, createClient } from '../../src/spotify/client';
+import {
+  getPlaylistItems,
+  getProfile,
+  listPlaylists,
+  searchTracks,
+} from '../../src/spotify/endpoints';
+import { parseItemsPage, parsePlaylistPage, parseSearchPage } from '../../src/spotify/types';
 import { API, authEnv, fakeSleep, json, loggedInSession, routedFetch } from '../helpers/fakes';
 
 const CLIENT_ID = '0123456789abcdef0123456789abcdef';
@@ -81,6 +86,19 @@ describe('listPlaylists', () => {
       `${API}/me/playlists?limit=50&offset=50`,
       `${API}/me/playlists?limit=50&offset=100`,
     ]);
+  });
+
+  it('lists a playlist once when Spotify returns it on two pages', async () => {
+    const { client } = clientFor((url) => {
+      const offset = Number(url.searchParams.get('offset'));
+      // The list shifts between requests, so the last playlist of one page opens the next.
+      const items = offset === 0 ? [playlist('a'), playlist('b')] : [playlist('b'), playlist('c')];
+      return json({ items, next: offset === 0 ? 'x' : null });
+    });
+
+    const { playlists } = await listPlaylists(client);
+
+    expect(playlists.map((p) => p.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('handles an empty list', async () => {
@@ -260,5 +278,73 @@ describe('parseItemsPage', () => {
       ],
     });
     expect(page?.entries.map((e) => e.isLocal)).toEqual([true, true]);
+  });
+});
+
+const searchTrack = (id: string, extra: Record<string, unknown> = {}) => ({
+  type: 'track',
+  id,
+  uri: `spotify:track:${id}`,
+  name: `Song ${id}`,
+  artists: [{ id: `ar-${id}`, name: 'Artist' }],
+  album: { id: `al-${id}`, name: 'Album', album_type: 'compilation', images: [] },
+  duration_ms: 200_000,
+  explicit: false,
+  external_ids: { isrc: 'USAAA1100001' },
+  is_playable: true,
+  ...extra,
+});
+
+describe('parseSearchPage', () => {
+  it('reads the tracks and the fields the links and engine need', () => {
+    const page = parseSearchPage({ tracks: { items: [searchTrack('a')], total: 0 } });
+    expect(page).toHaveLength(1);
+    expect(page?.[0]).toMatchObject({
+      id: 'a',
+      albumId: 'al-a',
+      albumType: 'compilation',
+      isrc: 'USAAA1100001',
+      isPlayable: true,
+      artists: [{ id: 'ar-a', name: 'Artist' }],
+    });
+  });
+
+  it('counts items, never total', () => {
+    expect(parseSearchPage({ tracks: { items: [searchTrack('a')], total: 0 } })).toHaveLength(1);
+    expect(parseSearchPage({ tracks: { items: [], total: 40 } })).toHaveLength(0);
+  });
+
+  it('leaves out null entries and non-tracks, and returns null without a tracks list', () => {
+    const page = parseSearchPage({
+      tracks: { items: [null, searchTrack('a', { type: 'episode' })] },
+    });
+    expect(page).toEqual([]);
+    expect(parseSearchPage({})).toBeNull();
+    expect(parseSearchPage({ tracks: {} })).toBeNull();
+  });
+
+  it('keeps a missing is_playable as null', () => {
+    const track = searchTrack('a');
+    delete (track as Record<string, unknown>).is_playable;
+    expect(parseSearchPage({ tracks: { items: [track] } })?.[0]?.isPlayable).toBeNull();
+  });
+});
+
+describe('searchTracks', () => {
+  it('sends the query with type track and limit 10, and no market', async () => {
+    const { client, calls } = clientFor(() => json({ tracks: { items: [searchTrack('a')] } }));
+    const tracks = await searchTracks(client, 'isrc:USAAA1100001');
+    expect(tracks.map((t) => t.id)).toEqual(['a']);
+    const url = new URL(calls[0]?.url ?? '');
+    expect(url.pathname).toBe('/v1/search');
+    expect(url.searchParams.get('q')).toBe('isrc:USAAA1100001');
+    expect(url.searchParams.get('type')).toBe('track');
+    expect(url.searchParams.get('limit')).toBe('10');
+    expect(url.searchParams.has('market')).toBe(false);
+  });
+
+  it('throws when the reply has no tracks list', async () => {
+    const { client } = clientFor(() => json({}));
+    await expect(searchTracks(client, 'x')).rejects.toBeInstanceOf(BadResponseError);
   });
 });

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 12. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:No+Bone+Movies:242",
+    "title": "No Bone Movies",
+    "artists": ["Ozzy Osbourne"],
+    "album": "Randy Rhoads - Tribute",
+    "durationMs": 242000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:15lK1Uk4blchBRnr3n7vTl",
+      "title": "No Bone Movies",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 232431,
+      "isrc": "USSM11002850",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1fXQwENC0EoWvA4ZbeD3Yn",
+      "title": "No Bone Movies - Live 1980",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Tribute",
+      "albumType": "album",
+      "durationMs": 248425,
+      "isrc": "USSM18700030",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:1fXQwENC0EoWvA4ZbeD3Yn"
+}

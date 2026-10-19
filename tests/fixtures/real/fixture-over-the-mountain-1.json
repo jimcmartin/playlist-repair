@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 1. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:The+Ozzman+Cometh%3A+Greatest+Hits+%5BUS%5D+Disc+1:Over+the+Mountain:270",
+    "title": "Over the Mountain",
+    "artists": ["Ozzy Osbourne"],
+    "album": "The Ozzman Cometh: Greatest Hits [US] Disc 1",
+    "durationMs": 270000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:0i1RTnH2Lj5gTDRU5wtyT2",
+      "title": "Over the Mountain",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Diary Of A Madman",
+      "albumType": "album",
+      "durationMs": 271520,
+      "isrc": "USSM11002856",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7b9DseCDUAbbImRPpo8Jt0",
+      "title": "Over the Mountain",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Memoirs of a Madman",
+      "albumType": "compilation",
+      "durationMs": 272105,
+      "isrc": "USSM11002856",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5MJkj4LYULhi2zRye3mSCB",
+      "title": "Over the Mountain",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Diary of a Madman (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 271560,
+      "isrc": "USSM11002856",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4rywHYP7X8HlTZ1ZMr0cC0",
+      "title": "Over the Mountain",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 271790,
+      "isrc": "USSM11002856",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:0i1RTnH2Lj5gTDRU5wtyT2"
+}

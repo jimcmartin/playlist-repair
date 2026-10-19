@@ -150,3 +150,14 @@ export function normalizeAlbum(album: string): string {
   );
   return kept.length > 0 ? kept.join(' ') : normalized;
 }
+
+/**
+ * The first artist's name without a trailing band: "robben ford and the blue
+ * line" gives "robben ford". Used to search, since Spotify files the same
+ * recordings under both credits. Returns the whole name if nothing is left before "and".
+ */
+export function coreArtistName(artist: string): string {
+  const name = normalizeText(artist);
+  const head = name.split(' and ')[0] ?? '';
+  return head === '' ? name : head;
+}

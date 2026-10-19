@@ -83,7 +83,10 @@ describe('local files', () => {
   });
 
   it('still hold a version mismatch at Review', () => {
-    const match = matchCandidate(localFile(), candidate({ title: 'Song (Live)' }));
+    const match = matchCandidate(
+      localFile(),
+      candidate({ title: 'Song (Live)', album: 'Another Album' }),
+    );
     expect(match.tier).toBe('review');
     expect(match.capped).toEqual(['version']);
   });
@@ -132,5 +135,63 @@ describe('local files', () => {
   it('recover a missing title from the URI', () => {
     const match = matchCandidate(localFile({ title: '' }), candidate());
     expect(match.tier).toBe('high');
+  });
+});
+
+describe('a live album', () => {
+  const tribute = (overrides = {}) =>
+    localFile({
+      title: 'Crazy Train',
+      artists: ['Ozzy Osbourne'],
+      album: 'Randy Rhoads - Tribute',
+      durationMs: 322_000,
+      uri: 'spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:Crazy+Train:322',
+      ...overrides,
+    });
+  const live = (overrides = {}) =>
+    candidate({
+      uri: 'spotify:track:live',
+      title: 'Crazy Train - Live 1981',
+      artists: ['Ozzy Osbourne'],
+      album: 'Tribute',
+      durationMs: 320_357,
+      ...overrides,
+    });
+  const studio = candidate({
+    uri: 'spotify:track:studio',
+    title: 'Crazy Train',
+    artists: ['Ozzy Osbourne'],
+    album: 'Blizzard of Ozz',
+    durationMs: 293_000,
+  });
+
+  it('does not hold back a live track from the same album the file is tagged with', () => {
+    const match = matchCandidate(tribute(), live());
+    expect(match.capped).toEqual([]);
+    expect(match.tier).toBe('high');
+    expect(match.selected).toBe(false);
+  });
+
+  it('still reports the version difference', () => {
+    expect(matchCandidate(tribute(), live()).differences.markersOnlyOnCandidate).toEqual(['live']);
+  });
+
+  it('ranks it above the studio version', () => {
+    const ranked = rankCandidates(tribute(), [studio, live()]);
+    expect(ranked.map((m) => m.candidate.uri)).toEqual([
+      'spotify:track:live',
+      'spotify:track:studio',
+    ]);
+  });
+
+  it('still holds a live track from a different album at Review', () => {
+    const match = matchCandidate(tribute(), live({ album: 'Live & Loud', durationMs: 322_000 }));
+    expect(match.capped).toEqual(['version']);
+    expect(match.tier).toBe('review');
+  });
+
+  it('still holds back a studio track when the file is tagged live', () => {
+    const match = matchCandidate(tribute({ title: 'Crazy Train - Live' }), studio);
+    expect(match.capped).toEqual(['version']);
   });
 });

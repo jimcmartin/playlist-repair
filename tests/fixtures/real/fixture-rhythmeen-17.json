@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 17. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Rhythmeen:Rhythmeen:232",
+    "title": "Rhythmeen",
+    "artists": ["ZZ Top"],
+    "album": "Rhythmeen",
+    "durationMs": 232000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:0ENGJrM4g0kODzoWGHjqOr",
+      "title": "Rhythmeen",
+      "artists": ["ZZ Top"],
+      "album": "Rhythmeen",
+      "albumType": "album",
+      "durationMs": 232760,
+      "isrc": "USRC19603809",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7wLCEkuuWWn0Lc2unJJvx9",
+      "title": "Rhythmeen",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 233400,
+      "isrc": "USRC19603809",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:0ENGJrM4g0kODzoWGHjqOr"
+}

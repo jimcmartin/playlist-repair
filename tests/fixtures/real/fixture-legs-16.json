@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 16. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Greatest+Hits:Legs+%5B%23%5D:270",
+    "title": "Legs [#]",
+    "artists": ["ZZ Top"],
+    "album": "Greatest Hits",
+    "durationMs": 270000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:11oBg7EA3BgPLWrIx4Rv7D",
+      "title": "Legs (2008 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Eliminator",
+      "albumType": "album",
+      "durationMs": 273906,
+      "isrc": "USWB10702822",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3HN1T3wx4GgipX1HpT0Kz8",
+      "title": "Legs",
+      "artists": ["ZZ Top"],
+      "album": "Legs / Bad Girl",
+      "albumType": "single",
+      "durationMs": 214866,
+      "isrc": "USWB10904535",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2u5G4MzqAWOd7zCILF4hAZ",
+      "title": "Legs (Remix)",
+      "artists": ["ZZ Top"],
+      "album": "ZZ Top's Greatest Hits",
+      "albumType": "compilation",
+      "durationMs": 271800,
+      "isrc": "USWB19902794",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0NNwIh763w1ohMtBk53dhY",
+      "title": "Legs - Live",
+      "artists": ["ZZ Top"],
+      "album": "Live From Texas",
+      "albumType": "album",
+      "durationMs": 299600,
+      "isrc": "GBCBR0800305",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3kRRJ5zwqnfdsSU1OXEhvn",
+      "title": "Legs",
+      "artists": ["ZZ Top"],
+      "album": "RAW (‘That Little Ol' Band From Texas’ Original Soundtrack)",
+      "albumType": "album",
+      "durationMs": 261825,
+      "isrc": "QMRSZ2200142",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3psBTbgxlQxloWxvgOopKA",
+      "title": "Legs - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 273493,
+      "isrc": "USWB11901055",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7hfnR78YHZ9GWxDL44bvgU",
+      "title": "Legs (2008 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "The Very Baddest of... ZZ Top",
+      "albumType": "album",
+      "durationMs": 216520,
+      "isrc": "USWB10702685",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5j8VgOP3Jd8kyggWLg4GeD",
+      "title": "Legs - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50 (Deluxe Edition)",
+      "albumType": "album",
+      "durationMs": 273880,
+      "isrc": "USWB11901055",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0UBU7wUFAMK3ymO4xW9eu6",
+      "title": "Legs - HD Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Legs (HD Remaster)",
+      "albumType": "single",
+      "durationMs": 295296,
+      "isrc": "USWBV2300109",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:11oBg7EA3BgPLWrIx4Rv7D"
+}

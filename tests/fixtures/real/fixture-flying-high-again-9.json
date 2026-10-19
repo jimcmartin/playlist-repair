@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 9. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:Flying+High+Again:259",
+    "title": "Flying High Again",
+    "artists": ["Ozzy Osbourne"],
+    "album": "Randy Rhoads - Tribute",
+    "durationMs": 259000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:3VPcxdwwo9TcjAOYZa5ZrP",
+      "title": "Flying High Again",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Diary Of A Madman",
+      "albumType": "album",
+      "durationMs": 284106,
+      "isrc": "USSM11002857",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3iCSWbt34RSBPJ0h6WERvv",
+      "title": "Flying High Again - Live 1981",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Tribute",
+      "albumType": "album",
+      "durationMs": 257759,
+      "isrc": "USSM18700023",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3QWqnS5JmROVHcOiR3IbRg",
+      "title": "Flying High Again",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Diary of a Madman (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 284133,
+      "isrc": "USSM11002857",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0h3QaaoJHwIV3IZIO14CVk",
+      "title": "Flying High Again - Live at Lakewood Amphitheatre, Atlanta, GA - August 1992",
+      "artists": ["Ozzy Osbourne"],
+      "album": "LIVE & LOUD",
+      "albumType": "album",
+      "durationMs": 302560,
+      "isrc": "USSM19300049",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4esChqY8oYEaLE94iMYoTY",
+      "title": "Flying High Again - Live from Blizzard Of Ozz Tour",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Diary of a Madman (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 263573,
+      "isrc": "USSM11102072",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5r6QLte3HllmrbOIzu8xVd",
+      "title": "Flying High Again",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Memoirs of a Madman",
+      "albumType": "compilation",
+      "durationMs": 283663,
+      "isrc": "USSM11002857",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4oR1mxPl3LsexNF0SEvN10",
+      "title": "Flying High Again",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 284219,
+      "isrc": "USSM11002857",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1tXwvkwOqrIpfT9S83e6zJ",
+      "title": "Flying High Again - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Flying High Again (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 263466,
+      "isrc": "USSM20200588",
+      "explicit": true,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:3iCSWbt34RSBPJ0h6WERvv"
+}

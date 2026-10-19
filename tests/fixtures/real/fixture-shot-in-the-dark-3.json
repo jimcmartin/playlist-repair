@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 3. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:The+Ozzman+Cometh%3A+Greatest+Hits+%5BUS%5D+Disc+1:Shot+in+the+Dark:253",
+    "title": "Shot in the Dark",
+    "artists": ["Ozzy Osbourne"],
+    "album": "The Ozzman Cometh: Greatest Hits [US] Disc 1",
+    "durationMs": 253000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:31dqpLUModJWNbxrXu6TWd",
+      "title": "Shot in the Dark",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Ultimate Sin",
+      "albumType": "album",
+      "durationMs": 256275,
+      "isrc": "USSM18600039",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:51bbmP3zXrqd6XRM2kA7p9",
+      "title": "Shot In The Dark - Live at Cincinnati Gardens, Cincinnati, OH - August 1992",
+      "artists": ["Ozzy Osbourne"],
+      "album": "LIVE & LOUD",
+      "albumType": "album",
+      "durationMs": 397626,
+      "isrc": "USSM19300054",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1eOKQhdk86axQvlmf3PsSh",
+      "title": "Shot In The Dark - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Shot In The Dark (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 342549,
+      "isrc": "USSM20200592",
+      "explicit": true,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:31dqpLUModJWNbxrXu6TWd"
+}

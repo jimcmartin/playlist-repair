@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 10. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:Randy+Rhoads+-+Tribute:Steal+Away+%28The+Night%29:202",
+    "title": "Steal Away (The Night)",
+    "artists": ["Ozzy Osbourne"],
+    "album": "Randy Rhoads - Tribute",
+    "durationMs": 202000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:5BVb65SJkOp1djZlzJOxLT",
+      "title": "Steal Away (The Night)",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 210277,
+      "isrc": "USSM11002852",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3mAP6XyzqQei7XvBgM4p27",
+      "title": "Steal Away (The Night) [With Drum Solo] - Live 1981",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Tribute",
+      "albumType": "album",
+      "durationMs": 484869,
+      "isrc": "USSM18700019",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6rKfkIcaT7RIxvPuEnuyWK",
+      "title": "Steal Away (The Night) - Live from Blizzard Of Ozz tour",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Blizzard Of Ozz (40th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 482547,
+      "isrc": "USSM11102074",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:3mAP6XyzqQei7XvBgM4p27"
+}

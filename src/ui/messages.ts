@@ -96,3 +96,44 @@ export function describeScanError(error: unknown, playlist?: string): string {
   }
   return `Something unexpected went wrong while loading ${target}. ${NOTHING_CHANGED} Reload the page to try again.`;
 }
+
+// --- Finding fixes ------------------------------------------------------------
+
+const SEARCH_KEPT = 'Nothing in your playlist was changed.';
+
+/** A message for a "Find fixes" run that ended early. `found` is how many tracks were searched before it did. */
+export function describeSearchError(error: unknown, found: number, playlist: string): string {
+  const kept = `${SEARCH_KEPT} ${keptTracks(found, playlist)}`;
+  if (error instanceof QuotaExceededError) {
+    return `Spotify says this app has used up its request quota, so the search stopped. ${kept} Wait a while, then choose Find fixes again.`;
+  }
+  if (error instanceof RateLimitedError) {
+    const minutes = Math.ceil(error.waitMs / 60_000);
+    return `Spotify asked this app to wait about ${String(minutes)} minute${minutes === 1 ? '' : 's'} before more requests, so the search stopped. ${kept} Wait that long, then choose Find fixes again.`;
+  }
+  if (error instanceof AuthError) {
+    return `Your Spotify login ended during the search. ${ID_KEPT} ${kept} ${LOG_IN_AGAIN}`;
+  }
+  if (error instanceof ApiError) {
+    if (error.status === null) {
+      return `Could not reach Spotify during the search. ${kept} Check your connection, then choose Find fixes again.`;
+    }
+    return `Spotify returned an error during the search (${String(error.status)}). ${kept} Try Find fixes again in a moment.`;
+  }
+  if (error instanceof BadResponseError) {
+    return `Spotify returned a search reply this app could not read. ${kept} Try Find fixes again; if it keeps happening, report it.`;
+  }
+  return `Something unexpected went wrong during the search. ${kept} Reload the page to try again.`;
+}
+
+function keptTracks(found: number, playlist: string): string {
+  return found === 1
+    ? `The 1 track already searched in "${playlist}" is kept, and searching again skips it.`
+    : `The ${String(found)} tracks already searched in "${playlist}" are kept, and searching again skips them.`;
+}
+
+/** A message for a run that finished but could not search some tracks, for example after a timeout. */
+export function describeSearchFailures(failed: number, found: number, playlist: string): string {
+  const which = failed === 1 ? '1 track' : `${String(failed)} tracks`;
+  return `Spotify returned an error for ${which} in "${playlist}", so ${failed === 1 ? 'it was' : 'they were'} not searched. ${SEARCH_KEPT} The other ${String(found)} ${found === 1 ? 'is' : 'are'} shown below. Choose Find fixes again to retry ${failed === 1 ? 'it' : 'them'}; the rest are skipped.`;
+}

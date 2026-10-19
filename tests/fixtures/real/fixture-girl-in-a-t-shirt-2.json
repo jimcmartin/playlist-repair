@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 2. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Antenna:Girl+In+A+T-Shirt:247",
+    "title": "Girl In A T-Shirt",
+    "artists": ["ZZ Top"],
+    "album": "Antenna",
+    "durationMs": 247000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:3pwzeDeLTUTfSwqOkuaXWF",
+      "title": "Girl In A T-Shirt",
+      "artists": ["ZZ Top"],
+      "album": "Antenna",
+      "albumType": "album",
+      "durationMs": 250760,
+      "isrc": "USRC19300191",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2I4lhXqICHrGeHrR8CRMIl",
+      "title": "Girl in a T-Shirt",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 250733,
+      "isrc": "USRC19300191",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:3pwzeDeLTUTfSwqOkuaXWF"
+}

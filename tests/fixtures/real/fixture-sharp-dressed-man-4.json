@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 4. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Greatest+Hits:Sharp+Dressed+Man:251",
+    "title": "Sharp Dressed Man",
+    "artists": ["ZZ Top"],
+    "album": "Greatest Hits",
+    "durationMs": 251000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:0bRNszTbTFLNlunAeh7eom",
+      "title": "Sharp Dressed Man (2008 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Eliminator",
+      "albumType": "album",
+      "durationMs": 258026,
+      "isrc": "USWB10702682",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7aXgo7vAHDjHR0JrCX2qJv",
+      "title": "Sharp Dressed Man",
+      "artists": ["ZZ Top"],
+      "album": "The Baddest",
+      "albumType": "compilation",
+      "durationMs": 179333,
+      "isrc": "USWB10901928",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:15mLZ2fY0LoJyjWs1wrtgs",
+      "title": "Sharp Dressed Man",
+      "artists": ["ZZ Top"],
+      "album": "The Very Baddest of... ZZ Top",
+      "albumType": "album",
+      "durationMs": 179333,
+      "isrc": "USWB10901928",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0nqdBdVinfmIFAYpKGyH8G",
+      "title": "Sharp Dressed Man - Live",
+      "artists": ["ZZ Top"],
+      "album": "Live From Texas",
+      "albumType": "album",
+      "durationMs": 279373,
+      "isrc": "GBCBR0800304",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5u5sJKq5aoIbYyiUfBs7dg",
+      "title": "Sharp Dressed Man",
+      "artists": ["ZZ Top"],
+      "album": "ZZ Top's Greatest Hits",
+      "albumType": "compilation",
+      "durationMs": 250506,
+      "isrc": "USWB19902781",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5Wqhh9QKqZZmLjLdFLoW04",
+      "title": "Sharp Dressed Man - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 252746,
+      "isrc": "USWB11901050",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:75zvxbzql4nNPruxzX5yjH",
+      "title": "Sharp Dressed Man - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50 (Deluxe Edition)",
+      "albumType": "album",
+      "durationMs": 252733,
+      "isrc": "USWB11901050",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2ojoBZC6Gp0Kmnj0qIKdbZ",
+      "title": "Sharp Dressed Man (2019 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "album",
+      "durationMs": 252746,
+      "isrc": "USWB11901050",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5Txjt2mx4cMKabXSsMEQrl",
+      "title": "Sharp Dressed Man",
+      "artists": ["ZZ Top"],
+      "album": "Sharp Dressed Man",
+      "albumType": "single",
+      "durationMs": 254762,
+      "isrc": "USWBV0300163",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:2Lc0bHmhDANKauheRl6F02",
+      "title": "Sharp Dressed Man - HD Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Sharp Dressed Man (HD Remaster)",
+      "albumType": "single",
+      "durationMs": 253503,
+      "isrc": "USWBV2300108",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:5u5sJKq5aoIbYyiUfBs7dg"
+}

@@ -1,7 +1,13 @@
-import { MATCH_DURATION_TOLERANCE_MS, MATCH_THRESHOLDS } from '../config';
+import {
+  MATCH_DURATION_TOLERANCE_MS,
+  MATCH_MIN_ARTIST_SCORE,
+  MATCH_SAME_ALBUM_SCORE,
+  MATCH_SAME_WORK,
+  MATCH_THRESHOLDS,
+} from '../config';
 import { withLocalUriFallback } from './local';
 import { normalizeAlbum, splitTitle } from './normalize';
-import { combineParts, durationGapMs, scoreParts } from './score';
+import { albumNameScore, combineParts, durationGapMs, scoreParts } from './score';
 import type {
   AlbumType,
   CapReason,
@@ -36,15 +42,21 @@ export function matchCandidate(deadTrack: DeadTrack, candidate: Candidate): Matc
   const onlyOnDead = without(deadTitle.markers, candidateTitle.markers);
   const onlyOnCandidate = without(candidateTitle.markers, deadTitle.markers);
   const remasterDiffers = onlyOnDead.includes('remaster') || onlyOnCandidate.includes('remaster');
-  const versionMismatch = [...onlyOnDead, ...onlyOnCandidate].some(
-    (marker) => marker !== 'remaster',
-  );
-
   // A local file's explicit flag is a default, not a fact, so it can neither match nor mismatch.
   const explicitKnown = !dead.isLocal && dead.explicit !== null;
   const explicitDiffers = explicitKnown && dead.explicit !== candidate.explicit;
 
   const parts = scoreParts(dead, candidate);
+  // A local file's title tag often leaves out "Live" while its album tag says it all: a file
+  // tagged "Randy Rhoads - Tribute" is a live track. Streaming tracks carry the marker in the title.
+  const sameAlbumLoose =
+    dead.isLocal &&
+    albumNameScore(normalizeAlbum(dead.album), normalizeAlbum(candidate.album)) >=
+      MATCH_SAME_ALBUM_SCORE;
+  const versionMismatch = [
+    ...onlyOnDead,
+    ...onlyOnCandidate.filter((marker) => !(marker === 'live' && sameAlbumLoose)),
+  ].some((marker) => marker !== 'remaster');
   const score = combineParts(parts, { remasterDiffers });
   const gap = durationGapMs(dead, candidate);
 
@@ -67,11 +79,17 @@ export function matchCandidate(deadTrack: DeadTrack, candidate: Candidate): Matc
     parts.artists !== null &&
     (!explicitKnown || !explicitDiffers);
 
+  const sameWork =
+    parts.title >= MATCH_SAME_WORK.title &&
+    parts.artists !== null &&
+    parts.artists >= MATCH_SAME_WORK.artists;
+
   let tier: Tier = 'none';
   if (deadTitle.base !== '') {
     if (exactBase) tier = 'exact';
     else if (highBase) tier = 'high';
-    else if (score >= MATCH_THRESHOLDS.review) tier = 'review';
+    else if (parts.artists !== null && parts.artists < MATCH_MIN_ARTIST_SCORE) tier = 'none';
+    else if (score >= MATCH_THRESHOLDS.review || sameWork) tier = 'review';
     if (capped.length > 0 && (tier === 'exact' || tier === 'high')) tier = 'review';
   }
 
@@ -114,6 +132,8 @@ function compareSharedIsrc(a: Match, b: Match): number {
  * Scores the playable candidates and returns them best first. Candidates that
  * are not playable are dropped. Candidates sharing an ISRC are the same
  * recording, so among them the tie-break rules decide before the score does.
+ * Within a tier, a candidate held back by a cap (a live or remix copy, say) comes
+ * after those that are not, whatever its score.
  */
 export function rankCandidates(dead: DeadTrack, candidates: Candidate[]): Match[] {
   const matches = candidates
@@ -123,6 +143,7 @@ export function rankCandidates(dead: DeadTrack, candidates: Candidate[]): Match[
   matches.sort(
     (a, b) =>
       TIER_RANK[a.match.tier] - TIER_RANK[b.match.tier] ||
+      Number(a.match.capped.length > 0) - Number(b.match.capped.length > 0) ||
       b.match.score - a.match.score ||
       a.index - b.index,
   );

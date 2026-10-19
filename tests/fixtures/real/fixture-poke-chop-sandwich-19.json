@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 19. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:XXX:Poke+Chop+Sandwich:290",
+    "title": "Poke Chop Sandwich",
+    "artists": ["ZZ Top"],
+    "album": "XXX",
+    "durationMs": 290000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:5N4tXqTHb1khKRbIkdAOJ5",
+      "title": "Poke Chop Sandwich",
+      "artists": ["ZZ Top"],
+      "album": "X X X",
+      "albumType": "album",
+      "durationMs": 290533,
+      "isrc": "USRC19900764",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:5N4tXqTHb1khKRbIkdAOJ5"
+}

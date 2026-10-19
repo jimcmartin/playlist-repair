@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 7. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Greatest+Hits:My+Head%27s+in+Mississippi:256",
+    "title": "My Head's in Mississippi",
+    "artists": ["ZZ Top"],
+    "album": "Greatest Hits",
+    "durationMs": 256000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:6LPQVBRDTZK539mKAbyMHC",
+      "title": "My Head's in Mississippi",
+      "artists": ["ZZ Top"],
+      "album": "Recycler",
+      "albumType": "album",
+      "durationMs": 261026,
+      "isrc": "USWB19902783",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5WNTSuZ5yK9RJQjZfB7mKs",
+      "title": "My Head's in Mississippi",
+      "artists": ["ZZ Top"],
+      "album": "ZZ Top's Greatest Hits",
+      "albumType": "compilation",
+      "durationMs": 261026,
+      "isrc": "USWB19902783",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1n5HNAWT8BQQeayvHUDZSQ",
+      "title": "My Head's in Mississippi",
+      "artists": ["ZZ Top"],
+      "album": "One Foot in the Blues",
+      "albumType": "album",
+      "durationMs": 261026,
+      "isrc": "USWB19902783",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1awfhrFF8whmHwlG3zbED5",
+      "title": "My Head's in Mississippi",
+      "artists": ["ZZ Top"],
+      "album": "The Very Baddest of... ZZ Top",
+      "albumType": "album",
+      "durationMs": 261026,
+      "isrc": "USWB19902783",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1lo9lGwoNQqgTxBp2ABPGy",
+      "title": "My Head's in Mississippi - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50 (Deluxe Edition)",
+      "albumType": "album",
+      "durationMs": 259053,
+      "isrc": "USWB11901097",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6wDBsSjd4NguqINWmShWwt",
+      "title": "My Head's in Mississippi - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 259053,
+      "isrc": "USWB11901097",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:5q4oQgV4PiBNcblUdLeNs0",
+      "title": "My Head's in Mississippi (2003 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Rancho Texicano: The Very Best of ZZ Top",
+      "albumType": "compilation",
+      "durationMs": 259066,
+      "isrc": "USWB10301953",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:4WkXoPaAbYfUsvH5z6Bepu",
+      "title": "My Head's in Mississippi - 2003 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Chrome Smoke & BBQ: The ZZ Top Box",
+      "albumType": "compilation",
+      "durationMs": 259066,
+      "isrc": "USWB10301953",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:30BHm1gqTnYAbQY2JvckhS",
+      "title": "My Head's in Mississippi",
+      "artists": ["ZZ Top"],
+      "album": "The Complete Studio Albums (1970 - 1990)",
+      "albumType": "compilation",
+      "durationMs": 261026,
+      "isrc": "USWB19902783",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:706tH63RaXxxrvt6SFHfUg",
+      "title": "My Head's In Mississippi",
+      "artists": ["ZZ Top"],
+      "album": "Legendary",
+      "albumType": "compilation",
+      "durationMs": 259066,
+      "isrc": "USWB10301953",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:1awfhrFF8whmHwlG3zbED5"
+}

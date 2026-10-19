@@ -1,10 +1,12 @@
-import { PAGE_SIZE } from '../config';
+import { PAGE_SIZE, SEARCH_RESULT_LIMIT } from '../config';
 import { BadResponseError, type SpotifyClient } from './client';
 import {
   parseItemsPage,
   parsePlaylistPage,
+  parseSearchPage,
   parseProfile,
   type PlaylistEntry,
+  type PlaylistItem,
   type PlaylistSummary,
   type Profile,
 } from './types';
@@ -29,7 +31,10 @@ export async function listPlaylists(client: SpotifyClient): Promise<PlaylistList
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const page = parsePlaylistPage(await client.get('/me/playlists', { limit: PAGE_SIZE, offset }));
     if (page === null) throw new BadResponseError('GET /me/playlists returned no items list');
-    playlists.push(...page.playlists);
+    // A playlist can come back on two pages if the list changes between requests.
+    for (const playlist of page.playlists) {
+      if (!playlists.some((known) => known.id === playlist.id)) playlists.push(playlist);
+    }
     dropped += page.dropped;
     if (!page.hasNext) return { playlists, dropped };
   }
@@ -58,4 +63,13 @@ export async function getPlaylistItems(
     options.onPage?.(entries.length, page.total);
     if (!page.hasNext) return entries;
   }
+}
+
+/** GET /search?type=track. One request, at most 10 results, and no `market`. */
+export async function searchTracks(client: SpotifyClient, query: string): Promise<PlaylistItem[]> {
+  const tracks = parseSearchPage(
+    await client.get('/search', { q: query, type: 'track', limit: SEARCH_RESULT_LIMIT }),
+  );
+  if (tracks === null) throw new BadResponseError('GET /search returned no tracks list');
+  return tracks;
 }

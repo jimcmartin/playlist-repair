@@ -186,3 +186,75 @@ button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.find-fixes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.find-fixes .actions button {
+  margin-top: 0.25rem;
+}
+
+.inline-check {
+  display: inline-block;
+  font-weight: 400;
+}
+
+.review-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.review-rows {
+  padding: 0;
+  list-style: none;
+}
+
+.review-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.review-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.track-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-block;
+  margin: 0.15rem 0.35rem 0 0;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.differences {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+  color: var(--error);
+  font-weight: 600;
+}
+
+.picker {
+  padding-left: 0;
+  list-style: none;
+}
+
+.picker label {
+  font-weight: 400;
+}

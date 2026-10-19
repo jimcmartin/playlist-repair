@@ -204,6 +204,27 @@ export const streamingCases: EngineCase[] = [
   },
 ];
 
+streamingCases.push({
+  name: 'same song by the band leader, live, beats unrelated artists',
+  dead: deadTrack(
+    'The Brother (For Jimmie & Stevie)',
+    ['Robben Ford & The Blue Line'],
+    'Robben Ford & The Blue Line',
+    300_000,
+    { isrc: isrc(20) },
+  ),
+  candidates: [
+    track('cover', 'The Brother', ['Some Cover Band'], 'Tribute Night', 300_000, {
+      isrc: isrc(21),
+    }),
+    track('live', 'The Brother - Live 1998', ['Robben Ford'], 'Live at the Roxy', 420_000, {
+      isrc: isrc(22),
+    }),
+  ],
+  expectedTiers: ['review', 'none'],
+  best: 'spotify:track:live',
+});
+
 export const localCases: EngineCase[] = [
   {
     name: 'local file with a clear match',

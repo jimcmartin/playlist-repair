@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 18. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Rhythmeen:Hairdresser:228",
+    "title": "Hairdresser",
+    "artists": ["ZZ Top"],
+    "album": "Rhythmeen",
+    "durationMs": 228000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:7nQpwWMDTqzwR7qwD1ZUqq",
+      "title": "Hairdresser",
+      "artists": ["ZZ Top"],
+      "album": "Rhythmeen",
+      "albumType": "album",
+      "durationMs": 228693,
+      "isrc": "USRC19603815",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:7nQpwWMDTqzwR7qwD1ZUqq"
+}

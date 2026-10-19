@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { MATCH_WEIGHTS, MISSING_PART, REMASTER_SCORE_PENALTY } from '../../src/config';
-import { combineParts, durationScore, scoreParts } from '../../src/engine';
+import { albumNameScore, combineParts, durationScore, scoreParts } from '../../src/engine';
 import { candidate, dead } from '../helpers/engine';
 
 describe('weights', () => {
   it('sum to 1', () => {
     const sum = Object.values(MATCH_WEIGHTS).reduce((a, b) => a + b, 0);
     expect(sum).toBeCloseTo(1);
+  });
+
+  it('give the artist more weight than the album and the duration', () => {
+    expect(MATCH_WEIGHTS.artists).toBeGreaterThan(MATCH_WEIGHTS.album);
+    expect(MATCH_WEIGHTS.artists).toBeGreaterThan(MATCH_WEIGHTS.duration);
   });
 });
 
@@ -78,6 +83,29 @@ describe('scoreParts', () => {
       expect(a.title).toBe(1);
     });
 
+    it('treats a band name and the same name with extra words as the same artist', () => {
+      const band = scoreParts(
+        dead({ artists: ['Robben Ford & The Blue Line'] }),
+        candidate({ artists: ['Robben Ford'] }),
+      );
+      const reverse = scoreParts(
+        dead({ artists: ['Robben Ford'] }),
+        candidate({ artists: ['Robben Ford & The Blue Line'] }),
+      );
+      const unrelated = scoreParts(
+        dead({ artists: ['Robben Ford & The Blue Line'] }),
+        candidate({ artists: ['Eric Clapton'] }),
+      );
+      expect(band.artists).toBeGreaterThanOrEqual(0.9);
+      expect(reverse.artists).toBeGreaterThanOrEqual(0.9);
+      expect(unrelated.artists).toBeLessThan(0.3);
+    });
+
+    it('does not treat a short name inside a longer one as a match', () => {
+      const parts = scoreParts(dead({ artists: ['Cher'] }), candidate({ artists: ['Archer'] }));
+      expect(parts.artists).toBeLessThan(0.9);
+    });
+
     it('is null when the dead track has no artist', () => {
       expect(scoreParts(dead({ artists: [] }), candidate()).artists).toBeNull();
     });
@@ -125,7 +153,9 @@ describe('scoreParts', () => {
 describe('combineParts', () => {
   it('is the weighted sum when every part is present', () => {
     const score = combineParts({ title: 1, artists: 0.5, duration: 0, album: 1 });
-    expect(score).toBeCloseTo(0.4 + 0.125 + 0 + 0.15);
+    expect(score).toBeCloseTo(
+      MATCH_WEIGHTS.title + 0.5 * MATCH_WEIGHTS.artists + MATCH_WEIGHTS.album,
+    );
   });
 
   it('counts a missing part for less, scored as unknown', () => {
@@ -149,5 +179,22 @@ describe('combineParts', () => {
   it('never goes below 0', () => {
     const parts = { title: 0, artists: 0, duration: 0, album: 0 };
     expect(combineParts(parts, { remasterDiffers: true })).toBe(0);
+  });
+});
+
+describe('albumNameScore', () => {
+  it('counts an album name inside a longer one as the same album', () => {
+    expect(albumNameScore('tribute', 'randy rhoads tribute')).toBeGreaterThanOrEqual(0.9);
+    expect(albumNameScore('randy rhoads tribute', 'tribute')).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('does not count a short word inside another name', () => {
+    expect(albumNameScore('hits', 'now hits 54')).toBeLessThan(0.9);
+  });
+
+  it('is plain similarity otherwise', () => {
+    expect(albumNameScore('abc', 'abc')).toBe(1);
+    expect(albumNameScore('abc', 'xyz')).toBe(0);
+    expect(albumNameScore('', 'abc')).toBe(0);
   });
 });

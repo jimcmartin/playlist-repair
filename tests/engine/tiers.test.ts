@@ -114,6 +114,14 @@ describe('Review and None', () => {
 });
 
 describe('caps', () => {
+  it('hold a live track on the same album at Review for a track that is not a local file', () => {
+    const match = matchCandidate(
+      dead({ isrc: null }),
+      candidate({ isrc: null, title: 'Song - Live' }),
+    );
+    expect(match.capped).toEqual(['version']);
+  });
+
   it.each([
     ['live', 'Song (Live)'],
     ['acoustic', 'Song - Acoustic'],
@@ -177,6 +185,24 @@ describe('caps', () => {
 });
 
 describe('rankCandidates', () => {
+  it('puts a clean Review match ahead of a capped one with a higher score', () => {
+    const ranked = rankCandidates(dead({ isrc: null }), [
+      candidate({ uri: 'spotify:track:remix', isrc: null, title: 'Song (Remix)' }),
+      candidate({
+        uri: 'spotify:track:clean',
+        isrc: null,
+        album: 'Something Else',
+        durationMs: 205_000,
+      }),
+    ]);
+    const [first, second] = ranked;
+    expect(first?.candidate.uri).toBe('spotify:track:clean');
+    expect(first?.capped).toEqual([]);
+    expect(first?.tier).toBe('review');
+    expect(second?.capped).toEqual(['version']);
+    expect(second?.score).toBeGreaterThan(first?.score ?? 1);
+  });
+
   it('never scores a candidate that is not playable', () => {
     const ranked = rankCandidates(dead(), [
       candidate({ uri: 'spotify:track:a', isPlayable: false }),
@@ -278,5 +304,70 @@ describe('rankCandidates', () => {
       ]);
       expect(ranked[0]?.candidate.uri).toBe('spotify:track:higher');
     });
+  });
+});
+
+describe('artists', () => {
+  const noIsrc = { isrc: null } as const;
+
+  it('hold a candidate by an unrelated artist at None, whatever else matches', () => {
+    const match = matchCandidate(dead(noIsrc), candidate({ ...noIsrc, artists: ['Someone Else'] }));
+    expect(match.tier).toBe('none');
+  });
+
+  it('do not hold back an Exact match, since the ISRC is the same recording', () => {
+    const match = matchCandidate(dead(), candidate({ artists: ['Credited Differently'] }));
+    expect(match.tier).toBe('exact');
+  });
+
+  it('keep the same song by the same artist at Review when only the version and length differ', () => {
+    const original = dead({
+      title: 'The Brother (For Jimmie & Stevie)',
+      artists: ['Robben Ford & The Blue Line'],
+      album: 'Robben Ford & The Blue Line',
+      durationMs: 300_000,
+      isrc: null,
+    });
+    const ranked = rankCandidates(original, [
+      candidate({
+        uri: 'spotify:track:unrelated',
+        title: 'The Brother',
+        artists: ['Someone Else'],
+        album: 'Other',
+        durationMs: 300_000,
+        isrc: null,
+      }),
+      candidate({
+        uri: 'spotify:track:live',
+        title: 'The Brother - Live 1998',
+        artists: ['Robben Ford'],
+        album: 'Live at the Roxy',
+        durationMs: 420_000,
+        isrc: null,
+      }),
+    ]);
+    expect(ranked.map((m) => m.candidate.uri)).toEqual([
+      'spotify:track:live',
+      'spotify:track:unrelated',
+    ]);
+    expect(ranked[0]?.tier).toBe('review');
+    expect(ranked[0]?.selected).toBe(false);
+    expect(ranked[1]?.tier).toBe('none');
+  });
+
+  it('keep a track with an extra credited artist at Review, even when the length is far off', () => {
+    const match = matchCandidate(
+      dead({ isrc: null, artists: ['Ozzy Osbourne'], durationMs: 202_000 }),
+      candidate({ isrc: null, artists: ['Ozzy Osbourne', 'Randy Rhoads'], durationMs: 485_000 }),
+    );
+    expect(match.tier).toBe('review');
+  });
+
+  it('do not rescue a different song by the same artist', () => {
+    const match = matchCandidate(
+      dead({ isrc: null }),
+      candidate({ isrc: null, title: 'Another Tune', durationMs: 90_000, album: 'Other' }),
+    );
+    expect(match.tier).toBe('none');
   });
 });

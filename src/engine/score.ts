@@ -1,4 +1,8 @@
 import {
+  ALBUM_CONTAINED_MIN_LENGTH,
+  ALBUM_CONTAINED_NAME_SCORE,
+  ARTIST_CONTAINED_MIN_LENGTH,
+  ARTIST_CONTAINED_NAME_SCORE,
   ARTIST_PRIMARY_SHARE,
   DURATION_SCORE_MS,
   LOCAL_DURATION_ROUNDING_MS,
@@ -33,15 +37,55 @@ function artistSet(artists: string[], featured: string[]): string[] {
   return [...new Set(names)];
 }
 
+/**
+ * How alike two normalized artist names are. A name that holds all the words of
+ * the other ("robben ford" in "robben ford and the blue line") counts as a variation.
+ */
+export function artistNameScore(a: string, b: string): number {
+  if (a === '' || b === '') return 0;
+  if (a === b) return 1;
+  const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+  const words = new Set(longer.split(' '));
+  if (
+    shorter.length >= ARTIST_CONTAINED_MIN_LENGTH &&
+    shorter.split(' ').every((word) => words.has(word))
+  ) {
+    return ARTIST_CONTAINED_NAME_SCORE;
+  }
+  return similarity(a, b);
+}
+
 function artistsScore(dead: DeadTrack, candidate: Candidate): number | null {
   const deadNames = artistSet(dead.artists, splitTitle(dead.title).featured);
   const candidateNames = artistSet(candidate.artists, splitTitle(candidate.title).featured);
   const deadPrimary = normalizeText(dead.artists[0] ?? '');
   if (deadNames.length === 0 || deadPrimary === '') return null;
-  const primary = similarity(deadPrimary, normalizeText(candidate.artists[0] ?? ''));
-  const shared = deadNames.filter((name) => candidateNames.includes(name)).length;
-  const union = new Set([...deadNames, ...candidateNames]).size;
+  const primary = artistNameScore(deadPrimary, normalizeText(candidate.artists[0] ?? ''));
+  // A name matches if it equals or varies on one on the other side.
+  const shared = deadNames.filter((name) =>
+    candidateNames.some((other) => artistNameScore(name, other) >= ARTIST_CONTAINED_NAME_SCORE),
+  ).length;
+  const union = deadNames.length + candidateNames.length - shared;
   return ARTIST_PRIMARY_SHARE * primary + (1 - ARTIST_PRIMARY_SHARE) * (shared / union);
+}
+
+/**
+ * How alike two normalized album names are, counting one that holds all the words of the
+ * other as the same album. Used to tell a live album from its title; the score itself
+ * uses plain similarity, since a generic name like "Greatest Hits" is in many releases.
+ */
+export function albumNameScore(a: string, b: string): number {
+  if (a === '' || b === '') return 0;
+  if (a === b) return 1;
+  const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+  const words = new Set(longer.split(' '));
+  if (
+    shorter.length >= ALBUM_CONTAINED_MIN_LENGTH &&
+    shorter.split(' ').every((word) => words.has(word))
+  ) {
+    return ALBUM_CONTAINED_NAME_SCORE;
+  }
+  return similarity(a, b);
 }
 
 export function scoreParts(dead: DeadTrack, candidate: Candidate): ScoreParts {

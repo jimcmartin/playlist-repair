@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { createSearchCache, findFixes, type FixRun } from '../repair/search';
 import {
   estimateScanRequests,
   scanAll,
@@ -11,7 +12,9 @@ import { AuthError } from '../spotify/auth';
 import { listPlaylists } from '../spotify/endpoints';
 import type { PlaylistSummary, Profile } from '../spotify/types';
 import { browserEnv } from './boot';
-import { describeScanError } from './messages';
+import { FindFixesPanel, type FindProgress } from './FindFixesPanel';
+import { describeScanError, describeSearchError, describeSearchFailures } from './messages';
+import { ReviewScreen } from './ReviewScreen';
 import { createSessionClient } from './session';
 
 // The development panel is left out of the production build.
@@ -39,6 +42,13 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
   const [notice, setNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [confirmingAll, setConfirmingAll] = useState(false);
+  const [searchCache] = useState(createSearchCache);
+  const [fixRuns, setFixRuns] = useState<Record<string, FixRun>>({});
+  const [finding, setFinding] = useState<(FindProgress & { id: string }) | null>(null);
+  const [confirmingFind, setConfirmingFind] = useState<string | null>(null);
+  const [includeLocal, setIncludeLocal] = useState<Record<string, boolean>>({});
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +80,10 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
 
   function recordResult(playlist: PlaylistSummary, result: ScanResult) {
     setResults((current) => ({ ...current, [playlist.id]: result }));
+    // A rescan can change positions, so an earlier search no longer lines up with the playlist.
+    setFixRuns((current) =>
+      Object.fromEntries(Object.entries(current).filter(([id]) => id !== playlist.id)),
+    );
     setRowErrors((current) =>
       Object.fromEntries(Object.entries(current).filter(([id]) => id !== playlist.id)),
     );
@@ -120,14 +134,100 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
     });
   }
 
-  const busy = scanning.size > 0;
+  async function findOne(playlist: PlaylistSummary) {
+    const scan = results[playlist.id];
+    if (!scan) return;
+    setConfirmingFind(null);
+    setNotice(null);
+    setRowErrors((current) =>
+      Object.fromEntries(Object.entries(current).filter(([id]) => id !== playlist.id)),
+    );
+    setFinding({ id: playlist.id, done: 0, total: 0, requests: 0 });
+    const run = await findFixes(client, scan, {
+      includeLocal: includeLocal[playlist.id] === true,
+      cache: searchCache,
+      onProgress: (done, total, requests) => {
+        setFinding({ id: playlist.id, done, total, requests });
+      },
+    });
+    setFinding(null);
+    setFixRuns((current) => ({ ...current, [playlist.id]: run }));
+    if (run.stopped instanceof AuthError) {
+      onSessionEnded(describeSearchError(run.stopped, run.rows.length, playlist.name));
+      return;
+    }
+    const message =
+      run.stopped !== null
+        ? describeSearchError(run.stopped, run.rows.length, playlist.name)
+        : run.failed.length > 0
+          ? describeSearchFailures(run.failed.length, run.rows.length, playlist.name)
+          : null;
+    setRowErrors((current) =>
+      message === null ? current : { ...current, [playlist.id]: message },
+    );
+    // Show what was found, even when the run ended early.
+    if (run.rows.length > 0) {
+      setReviewNotice(message);
+      setReviewing(playlist.id);
+    }
+  }
+
+  function renderFind(playlist: PlaylistSummary) {
+    const scan = results[playlist.id];
+    if (!scan) return null;
+    return (
+      <FindFixesPanel
+        scan={scan}
+        cache={searchCache}
+        includeLocal={includeLocal[playlist.id] === true}
+        onIncludeLocal={(include) => {
+          setIncludeLocal((current) => ({ ...current, [playlist.id]: include }));
+        }}
+        confirming={confirmingFind === playlist.id}
+        busy={busy}
+        progress={finding?.id === playlist.id ? finding : null}
+        run={fixRuns[playlist.id]}
+        onAsk={() => {
+          setConfirmingFind(playlist.id);
+        }}
+        onCancel={() => {
+          setConfirmingFind(null);
+        }}
+        onStart={() => void findOne(playlist)}
+        onReview={() => {
+          setReviewNotice(rowErrors[playlist.id] ?? null);
+          setReviewing(playlist.id);
+        }}
+      />
+    );
+  }
+
+  const busy = scanning.size > 0 || finding !== null;
+
+  const reviewedRun = reviewing === null ? undefined : fixRuns[reviewing];
+  const reviewedPlaylist =
+    loaded.state === 'ready' ? loaded.playlists.find((p) => p.id === reviewing) : undefined;
+  if (reviewedRun && reviewedPlaylist) {
+    return (
+      <ReviewScreen
+        playlistName={reviewedPlaylist.name}
+        run={reviewedRun}
+        sessionRequests={stats.requests}
+        notice={reviewNotice}
+        onBack={() => {
+          setReviewing(null);
+        }}
+      />
+    );
+  }
 
   return (
     <>
       <h2>Your playlists</h2>
       <p>
         Connected as <strong>{profile.displayName}</strong>. Scanning only reads your playlists.
-        Nothing in your account is changed.
+        Nothing in your account is changed. Requests sent to Spotify this session:{' '}
+        <strong>{stats.requests}</strong>.
       </p>
       {notice !== null && (
         <p role="alert" className="error">
@@ -190,6 +290,8 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
                 error={rowErrors[playlist.id]}
                 scanning={scanning.has(playlist.id)}
                 onScan={() => void scanOne(playlist)}
+                disabled={busy}
+                find={renderFind(playlist)}
               />
             ))}
           </ul>
@@ -234,9 +336,21 @@ interface RowProps {
   error: string | undefined;
   scanning: boolean;
   onScan: () => void;
+  /** Something else is running, so the row's buttons wait. */
+  disabled: boolean;
+  find: ReactNode;
 }
 
-function PlaylistRow({ playlist, profileId, result, error, scanning, onScan }: RowProps) {
+function PlaylistRow({
+  playlist,
+  profileId,
+  result,
+  error,
+  scanning,
+  onScan,
+  disabled,
+  find,
+}: RowProps) {
   const owner =
     playlist.ownerId === profileId ? null : `Collaborative, owned by ${playlist.ownerName}`;
   return (
@@ -250,13 +364,14 @@ function PlaylistRow({ playlist, profileId, result, error, scanning, onScan }: R
         </span>
         {scanning && <span role="status">Scanning…</span>}
         {result && !scanning && <ScanSummary result={result} />}
+        {find}
         {error !== undefined && (
           <span role="alert" className="error">
             {error}
           </span>
         )}
       </div>
-      <button type="button" className="secondary" disabled={scanning} onClick={onScan}>
+      <button type="button" className="secondary" disabled={scanning || disabled} onClick={onScan}>
         {result ? 'Rescan' : 'Scan'}
       </button>
     </li>

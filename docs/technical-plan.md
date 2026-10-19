@@ -141,7 +141,7 @@ The login reply is handled once at startup, before React renders, because a code
 
 - **Throttle.** At most 2 requests in flight. Spotify's rate limit is counted over a rolling 30-second window.
 - **429.** Wait for the `Retry-After` header, then retry. A 429 also pauses the other request slot and the queue. If the body's `reason` is `QUOTA_EXCEEDED`, stop, keep the work done so far, and tell the user to resume later. A `Retry-After` over 60 seconds, or a request still limited after 5 retries, is treated the same way: stop and keep the work. With no readable `Retry-After`, wait 5 seconds.
-- **Quota.** Spotify counts the quota per developer account, not per client ID or user, in buckets of endpoints, and publishes neither the numbers nor the reset time. A full scan of 120 playlists costs about 360 requests, since each playlist needs at least one request plus one per 50 tracks. Avoid rescanning what is already scanned, and plan milestone 5's searches (up to 3 per broken track, up to 2 per local file) against this budget. The Playlists screen shows the estimated request count before searching, and local files are searched only for playlists the user chooses, with results cached by artist, title and duration so a file in several playlists is searched once.
+- **Quota.** Spotify counts the quota per developer account, not per client ID or user, in buckets of endpoints, and publishes neither the numbers nor the reset time. A full scan of 120 playlists costs about 360 requests, since each playlist needs at least one request plus one per 50 tracks. Avoid rescanning what is already scanned. "Find fixes" shows its estimated request count before it starts and the number it actually sent afterwards, and the Playlists screen shows the session total, since searches draw on the same quota. Plan milestone 5's searches (up to 3 per broken track, up to 2 per local file) against this budget. The Playlists screen shows the estimated request count before searching, and local files are searched only for playlists the user chooses, with results cached by artist, title and duration so a file in several playlists is searched once.
 - **Paging.** Pages are requested by `offset`. The client builds every URL from the API base and never follows a `next` URL from a reply, so a reply cannot send the app to another host.
 - **401.** Refresh the token once and retry. If that fails, send the user back to Connect without losing the review state.
 - **Cache.** Search results are cached in memory by query for the session, and candidate lists by dead track URI.
@@ -191,8 +191,8 @@ Only candidates with `is_playable` true are scored.
 
 | Part | Weight | Measure |
 | --- | --- | --- |
-| Title | 0.40 | Similarity of base titles |
-| Artists | 0.25 | Primary artist match, then overlap of the full artist sets |
+| Title | 0.30 | Similarity of base titles |
+| Artists | 0.35 | Primary artist match, then overlap of the full artist sets |
 | Duration | 0.20 | 1.0 within 2 seconds, falling to 0 at 15 seconds apart |
 | Album | 0.15 | Similarity of album names, ignoring edition words such as "deluxe" |
 
@@ -217,6 +217,8 @@ Only candidates with `is_playable` true are scored.
 - Its matches are never preselected, even in High. The user selects them one by one or with "select all" for the group.
 - Tags are often messy, so the duration and album parts count for less when the file's value is missing.
 
+**Artist handling (changed after first use in milestone 5).** The artist now outweighs the title. A name that holds all the words of another ("Robben Ford" and "Robben Ford & The Blue Line") scores 0.9 as a variation. An artists part under 0.3 holds a candidate at None, except an ISRC match. Title at 0.9 and artists at 0.8 or better mean the same song by the same artist, which is at least Review even when the length and album differ, as for a live version. Searches filter on the artist without the band ("robben ford") and keep the full name for the plain-text search. Each value is in `src/config.ts`.
+
 **Details settled in milestone 2.**
 
 - A cap also holds an Exact candidate at Review: the same ISRC with a different version marker is more likely a mislabelled ISRC than the same recording.
@@ -225,8 +227,20 @@ Only candidates with `is_playable` true are scored.
 - A local file's duration is whole seconds, so 1 second is forgiven before comparing durations.
 - A local file's empty tags are filled from its `spotify:local:` URI (`withLocalUriFallback`). With no title anywhere, every candidate is None.
 - Candidates sharing an ISRC are ordered by the tie-break rules before the score. Candidates with different ISRCs are ordered by tier, then score.
+- For a local file, a "live" marker only the candidate has does not cap it when the candidate's album holds all the words of the file's album tag ("Tribute" in "Randy Rhoads - Tribute"). The file's title tag often omits "Live" while the album tag says it. Streaming tracks keep the strict cap, and the album score itself is unchanged.
+- Within a tier, a candidate held back by a cap comes after those that are not, whatever its score.
 - A remaster difference takes 0.03 off the score and never caps. Album names ignore edition words, and years and ordinals next to them.
 - `tests/engine/boundaries.test.ts` and an ESLint override on `src/engine/` enforce that the engine imports only its own files and `src/config.ts`, and uses no network or DOM globals.
+
+**Search details settled in milestone 5.**
+
+- "Nothing usable" for a local file's first search means no candidate at Review or better. Then step 3 runs.
+- A search result with no `is_playable` is treated as not playable, so it is never scored.
+- Search results are cached by query text for the session, and finished searches by dead track URI. A local file's key is its first artist, base title and duration in seconds.
+- The request estimate is an upper bound: it counts each distinct query not already cached, so shared queries are counted once.
+- A quota stop, rate limit or ended login ends a "Find fixes" run. Any other error, such as a 503 or 504, fails only that track and the run carries on. Either way Review opens with what was found and a notice saying what was skipped or why the run stopped, and running it again searches only the tracks not yet done.
+- Review is a sub-view of the Playlists screen, so the scan results and the search cache survive going back and forth. A rescan drops that playlist's search results, since positions may have moved.
+- Rows are grouped by the tier of their best match. Choosing another candidate in the picker selects the row but does not move it to another group.
 
 Weights and thresholds are starting values. They live in `src/config.ts` and are tuned against real fixtures in milestone 5.
 
@@ -555,7 +569,7 @@ Real data from Jim's playlists, Oct 6, 2026: a local file has `is_local: true`, 
 - [ ] Does removing by URI remove every occurrence of that track? (milestone 6)
 - [ ] Can a `spotify:local:` entry be removed by URI, or only by position? (milestone 6)
 - [x] Which image hosts does album art come from, for the Content Security Policy? (milestone 4) **Four hosts seen on Jim's playlists on Oct 6, 2026: `i.scdn.co` (album art), `mosaic.scdn.co`, `image-cdn-ak.spotifycdn.com` and `image-cdn-fa.spotifycdn.com`. The `-ak` and `-fa` names suggest more CDN variants exist, so milestone 7 should allow `https://*.scdn.co` and `https://*.spotifycdn.com` in `img-src`, not just these four.**
-- [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows. *Partly answered on Oct 6, 2026. The rate limit was never hit: 0 rate limits over about 800 requests at 2 in flight, so the throttle stays at 2. The quota was hit: a first "Scan all" sent 437 requests with no limit, and a second one stopped with 2 `QUOTA_EXCEEDED` replies after 360 requests, having scanned 120 playlists. That is about 800 requests in one session. Spotify publishes no numbers or reset time. The reset time is still unknown: Jim should try again later and report when scanning works again.*
+- [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows. *Partly answered on Oct 6, 2026. The rate limit was never hit: 0 rate limits over about 800 requests at 2 in flight, so the throttle stays at 2. The quota was hit: a first "Scan all" sent 437 requests with no limit, and a second one stopped with 2 `QUOTA_EXCEEDED` replies after 360 requests, having scanned 120 playlists. That is about 800 requests in one session. Spotify publishes no numbers or reset time. Scanning worked again when Jim tried on Oct 18, twelve days after the quota stop, so the reset is somewhere within that window. The exact reset time is still unknown.*
 - [ ] Is the hosted site acceptable under Developer Policy section VII.2, or should the project be self-run only?
 
 ## Sources

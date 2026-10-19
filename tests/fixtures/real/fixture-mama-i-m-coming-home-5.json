@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "note": "From \"Best Ozzy\", position 5. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:Ozzy+Osbourne:The+Ozzman+Cometh%3A+Greatest+Hits+%5BUS%5D+Disc+1:Mama%2C+I%27m+Coming+Home:250",
+    "title": "Mama, I'm Coming Home",
+    "artists": ["Ozzy Osbourne"],
+    "album": "The Ozzman Cometh: Greatest Hits [US] Disc 1",
+    "durationMs": 250000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:0S3gpZzlT9Hb7CCSV2owX7",
+      "title": "Mama, I'm Coming Home",
+      "artists": ["Ozzy Osbourne"],
+      "album": "No More Tears (Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 251869,
+      "isrc": "USSM19100017",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3VGn2DH5WqgLq3QQUsrneY",
+      "title": "Mama, I'm Coming Home - Live at Cincinnati Gardens, Cincinnati, OH - August 1992",
+      "artists": ["Ozzy Osbourne"],
+      "album": "LIVE & LOUD",
+      "albumType": "album",
+      "durationMs": 346000,
+      "isrc": "USSM19300060",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6Afo4KxYHQWp2J54uIysnb",
+      "title": "Mama, I'm Coming Home - Live at Budokan Hall, Tokyo, Japan - February 2002",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Live At Budokan",
+      "albumType": "album",
+      "durationMs": 277573,
+      "isrc": "USSM10202699",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1vgdbK87PSzFszWKYW1jEM",
+      "title": "Mama, I'm Coming Home",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Essential Ozzy Osbourne",
+      "albumType": "compilation",
+      "durationMs": 252407,
+      "isrc": "USSM19100017",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3ZyK1Lp20Q9sFALOC3Y8Ii",
+      "title": "Mama, I'm Coming Home - Live",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Mama, I'm Coming Home (Live)",
+      "albumType": "single",
+      "durationMs": 262036,
+      "isrc": "USSM22102027",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0H16bK2n2hwCnd7M4cx1Pj",
+      "title": "Mama, I'm Coming Home",
+      "artists": ["Ozzy Osbourne"],
+      "album": "The Osbourne Family Album (Clean Version)",
+      "albumType": "compilation",
+      "durationMs": 252066,
+      "isrc": "USSM19100017",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6vQlPcuL2FlkY6rXeFEsp2",
+      "title": "Mama, I'm Coming Home",
+      "artists": ["Ozzy Osbourne"],
+      "album": "No More Tears (30th Anniversary Expanded Edition)",
+      "albumType": "album",
+      "durationMs": 251869,
+      "isrc": "USSM19100017",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0wY8tL8REA1ynPVbVdDk3I",
+      "title": "Mama, I'm Coming Home - Live & Loud",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Mama, I'm Coming Home (Live & Loud)",
+      "albumType": "single",
+      "durationMs": 264085,
+      "isrc": "USSM20200597",
+      "explicit": true,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6qfTTCgrI1JJIZ0Nsz4EwD",
+      "title": "Mama, I'm Coming Home",
+      "artists": ["Ozzy Osbourne"],
+      "album": "Memoirs of a Madman",
+      "albumType": "compilation",
+      "durationMs": 252024,
+      "isrc": "USSM19100017",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:0S3gpZzlT9Hb7CCSV2owX7"
+}

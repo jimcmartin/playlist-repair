@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "note": "From \"Best ZZ Top\", position 3. \"correct\" is a candidate URI, \"none\", or null if not marked.",
+  "dead": {
+    "uri": "spotify:local:ZZ+Top:Greatest+Hits:Gimme+All+Your+Lovin%27:238",
+    "title": "Gimme All Your Lovin'",
+    "artists": ["ZZ Top"],
+    "album": "Greatest Hits",
+    "durationMs": 238000,
+    "isrc": null,
+    "explicit": false,
+    "isLocal": true
+  },
+  "candidates": [
+    {
+      "uri": "spotify:track:29uKzagduhFDTWPCjqaGOg",
+      "title": "Gimme All Your Lovin'",
+      "artists": ["ZZ Top"],
+      "album": "Eliminator",
+      "albumType": "album",
+      "durationMs": 241080,
+      "isrc": "USWB10702680",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0XtOShQZMLJlpGgw4SGE7G",
+      "title": "Gimme All Your Lovin'",
+      "artists": ["ZZ Top"],
+      "album": "The Very Baddest of... ZZ Top",
+      "albumType": "album",
+      "durationMs": 211773,
+      "isrc": "USWB11401148",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3jwFxq2x7POiA3Enxuw8a4",
+      "title": "Gimme All Your Lovin'",
+      "artists": ["ZZ Top"],
+      "album": "ZZ Top's Greatest Hits",
+      "albumType": "compilation",
+      "durationMs": 239986,
+      "isrc": "USWB19902780",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:08Yy8YGHv1lSDiKZzVPuTn",
+      "title": "Gimme All Your Lovin'",
+      "artists": ["ZZ Top"],
+      "album": "The Baddest",
+      "albumType": "compilation",
+      "durationMs": 211773,
+      "isrc": "USWB11401148",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:1BTga4YssQqknxeqANg4zw",
+      "title": "Gimme All Your Lovin' - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "compilation",
+      "durationMs": 240106,
+      "isrc": "USWB11901051",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:6hIjhHuEJYF2fMQ6ANAwTi",
+      "title": "Gimme All Your Lovin' - Live",
+      "artists": ["ZZ Top"],
+      "album": "Gimme All Your Lovin' (Live)",
+      "albumType": "single",
+      "durationMs": 257239,
+      "isrc": "GBC251601555",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:3fCHjsE5F9xD3HbBIvuhON",
+      "title": "Gimme All Your Lovin' - 2019 Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50 (Deluxe Edition)",
+      "albumType": "album",
+      "durationMs": 240106,
+      "isrc": "USWB11901051",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:0oKVN8HMMWCQXQk5Ik389L",
+      "title": "Gimme All Your Lovin' - HD Remaster",
+      "artists": ["ZZ Top"],
+      "album": "Gimme All Your Lovin' (HD Remaster)",
+      "albumType": "single",
+      "durationMs": 279253,
+      "isrc": "USWBV2300110",
+      "explicit": false,
+      "isPlayable": true
+    },
+    {
+      "uri": "spotify:track:7rUaoEQh8YFOok4VW2Ndt9",
+      "title": "Gimme All Your Lovin' (2019 Remaster)",
+      "artists": ["ZZ Top"],
+      "album": "Goin' 50",
+      "albumType": "album",
+      "durationMs": 240106,
+      "isrc": "USWB11901051",
+      "explicit": false,
+      "isPlayable": true
+    }
+  ],
+  "correct": "spotify:track:3jwFxq2x7POiA3Enxuw8a4"
+}
