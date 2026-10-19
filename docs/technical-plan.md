@@ -217,6 +217,17 @@ Only candidates with `is_playable` true are scored.
 - Its matches are never preselected, even in High. The user selects them one by one or with "select all" for the group.
 - Tags are often messy, so the duration and album parts count for less when the file's value is missing.
 
+**Details settled in milestone 2.**
+
+- A cap also holds an Exact candidate at Review: the same ISRC with a different version marker is more likely a mislabelled ISRC than the same recording.
+- High needs a known duration within 3 seconds and a known primary artist, so a file with those tags missing tops out at Review.
+- A missing part (no album, no duration, no artist) is scored 0.5 and counts for half its weight, with the total renormalized.
+- A local file's duration is whole seconds, so 1 second is forgiven before comparing durations.
+- A local file's empty tags are filled from its `spotify:local:` URI (`withLocalUriFallback`). With no title anywhere, every candidate is None.
+- Candidates sharing an ISRC are ordered by the tie-break rules before the score. Candidates with different ISRCs are ordered by tier, then score.
+- A remaster difference takes 0.03 off the score and never caps. Album names ignore edition words, and years and ordinals next to them.
+- `tests/engine/boundaries.test.ts` and an ESLint override on `src/engine/` enforce that the engine imports only its own files and `src/config.ts`, and uses no network or DOM globals.
+
 Weights and thresholds are starting values. They live in `src/config.ts` and are tuned against real fixtures in milestone 5.
 
 ## Applying a repair

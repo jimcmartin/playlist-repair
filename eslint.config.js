@@ -31,6 +31,42 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
   {
+    // The matching engine is pure: it imports only its own files and config, and
+    // never touches the network or the DOM. tests/engine/boundaries.test.ts checks the same.
+    files: ['src/engine/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!\\./[\\w-]+$|\\.\\./config$)',
+              message: 'src/engine may import only its own files and src/config.ts.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        ...[
+          'fetch',
+          'XMLHttpRequest',
+          'WebSocket',
+          'EventSource',
+          'document',
+          'window',
+          'navigator',
+          'location',
+          'localStorage',
+          'sessionStorage',
+          'indexedDB',
+          'globalThis',
+          'self',
+        ].map((name) => ({ name, message: 'src/engine must not use the network or the DOM.' })),
+      ],
+    },
+  },
+  {
     files: ['*.{js,ts}', 'e2e/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
