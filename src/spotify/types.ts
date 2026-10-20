@@ -218,3 +218,8 @@ export function parseSearchPage(json: unknown): PlaylistItem[] | null {
   }
   return tracks;
 }
+
+/** The `snapshot_id` in a reply to a playlist read or write, or null if there is none. */
+export function parseSnapshotId(json: unknown): string | null {
+  return isRecord(json) && typeof json.snapshot_id === 'string' ? json.snapshot_id : null;
+}

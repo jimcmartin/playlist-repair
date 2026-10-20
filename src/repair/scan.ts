@@ -85,13 +85,22 @@ export async function scanPlaylist(
   options: ScanOptions = {},
 ): Promise<ScanResult> {
   const raw = await getPlaylistItems(client, playlist.id, options);
+  return buildScanResult(playlist.id, playlist.snapshotId, raw);
+}
+
+/** Classifies entries that were already read, such as those of Apply's verifying rescan. */
+export function buildScanResult(
+  playlistId: string,
+  snapshotId: string | null,
+  raw: PlaylistEntry[],
+): ScanResult {
   const counts = emptyCounts();
   const entries = raw.map((entry, position): ScannedEntry => {
     const status = classifyEntry(entry);
     counts[status] += 1;
     return { position, entry, status };
   });
-  return { playlistId: playlist.id, snapshotId: playlist.snapshotId, entries, counts };
+  return { playlistId, snapshotId, entries, counts };
 }
 
 export interface VisiblePlaylists {

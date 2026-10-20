@@ -62,6 +62,18 @@ export function authEnv(fetch: FetchLike, session = new MemoryStore()): AuthEnv 
 export interface RoutedCall {
   url: string;
   headers: Headers;
+  method: string;
+  /** The request body: parsed if it is JSON, the text if not, null if there was none. */
+  body: unknown;
+}
+
+function parseBody(body: unknown): unknown {
+  if (typeof body !== 'string') return null;
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    return body;
+  }
 }
 
 /**
@@ -78,7 +90,12 @@ export function routedFetch(handler: (call: RoutedCall) => Response | Error | Pr
   let inFlight = 0;
   let peak = 0;
   const fetch: FetchLike = async (url, init) => {
-    const call = { url, headers: new Headers(init?.headers) };
+    const call: RoutedCall = {
+      url,
+      headers: new Headers(init?.headers),
+      method: init?.method ?? 'GET',
+      body: parseBody(init?.body),
+    };
     calls.push(call);
     inFlight += 1;
     peak = Math.max(peak, inFlight);

@@ -1,10 +1,11 @@
-import { PAGE_SIZE, SEARCH_RESULT_LIMIT } from '../config';
+import { PAGE_SIZE, SEARCH_RESULT_LIMIT, WRITE_BATCH_SIZE } from '../config';
 import { BadResponseError, type SpotifyClient } from './client';
 import {
   parseItemsPage,
   parsePlaylistPage,
   parseSearchPage,
   parseProfile,
+  parseSnapshotId,
   type PlaylistEntry,
   type PlaylistItem,
   type PlaylistSummary,
@@ -72,4 +73,49 @@ export async function searchTracks(client: SpotifyClient, query: string): Promis
   );
   if (tracks === null) throw new BadResponseError('GET /search returned no tracks list');
   return tracks;
+}
+
+const itemsPath = (playlistId: string) => `/playlists/${encodeURIComponent(playlistId)}/items`;
+
+/** GET /playlists/{id}?fields=snapshot_id: the playlist's current version. */
+export async function getSnapshotId(client: SpotifyClient, playlistId: string): Promise<string> {
+  const snapshot = parseSnapshotId(
+    await client.get(`/playlists/${encodeURIComponent(playlistId)}`, { fields: 'snapshot_id' }),
+  );
+  if (snapshot === null) throw new BadResponseError('GET /playlists/{id} returned no snapshot_id');
+  return snapshot;
+}
+
+/**
+ * POST /playlists/{id}/items: inserts the URIs, in order, at a zero-based position.
+ * Returns the playlist's new snapshot_id, or null if Spotify sent none (the insert still happened).
+ */
+export async function insertItems(
+  client: SpotifyClient,
+  playlistId: string,
+  uris: string[],
+  position: number,
+): Promise<string | null> {
+  if (uris.length === 0 || uris.length > WRITE_BATCH_SIZE) {
+    throw new RangeError(`An insert takes 1 to ${String(WRITE_BATCH_SIZE)} URIs`);
+  }
+  return parseSnapshotId(await client.send('POST', itemsPath(playlistId), { uris, position }));
+}
+
+/**
+ * DELETE /playlists/{id}/items: removes every occurrence of each URI. The endpoint takes
+ * URIs only; there is no way to remove by position. Returns the new snapshot_id, or null.
+ */
+export async function removeItems(
+  client: SpotifyClient,
+  playlistId: string,
+  uris: string[],
+  snapshotId: string | null,
+): Promise<string | null> {
+  if (uris.length === 0 || uris.length > WRITE_BATCH_SIZE) {
+    throw new RangeError(`A removal takes 1 to ${String(WRITE_BATCH_SIZE)} URIs`);
+  }
+  const body: Record<string, unknown> = { items: uris.map((uri) => ({ uri })) };
+  if (snapshotId !== null) body.snapshot_id = snapshotId;
+  return parseSnapshotId(await client.send('DELETE', itemsPath(playlistId), body));
 }

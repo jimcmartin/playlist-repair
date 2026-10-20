@@ -88,7 +88,9 @@ input[type='text'] {
   border-radius: 6px;
 }
 
-button {
+button,
+a.button {
+  display: inline-block;
   margin-top: 1rem;
   padding: 0.6rem 1rem;
   font: inherit;
@@ -97,6 +99,7 @@ button {
   background: var(--accent);
   border: 1px solid var(--accent);
   border-radius: 6px;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -257,4 +260,18 @@ button:disabled {
 
 .picker label {
   font-weight: 400;
+}
+
+.apply-progress {
+  padding: 0;
+  list-style: none;
+}
+
+.apply-progress li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
 }

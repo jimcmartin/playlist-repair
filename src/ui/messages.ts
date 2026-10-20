@@ -137,3 +137,77 @@ export function describeSearchFailures(failed: number, found: number, playlist: 
   const which = failed === 1 ? '1 track' : `${String(failed)} tracks`;
   return `Spotify returned an error for ${which} in "${playlist}", so ${failed === 1 ? 'it was' : 'they were'} not searched. ${SEARCH_KEPT} The other ${String(found)} ${found === 1 ? 'is' : 'are'} shown below. Choose Find fixes again to retry ${failed === 1 ? 'it' : 'them'}; the rest are skipped.`;
 }
+
+// --- Applying ------------------------------------------------------------------
+
+const PHASE: Record<'check' | 'insert' | 'remove' | 'verify', string> = {
+  check: 'checking the playlist',
+  insert: 'adding the replacements',
+  remove: 'removing the greyed-out tracks',
+  verify: 'checking the result',
+};
+
+/**
+ * A message for an Apply that stopped. `phase` says where. Inserts always finish before
+ * removals, so a stop never leaves a track missing; at worst a replacement sits beside its original.
+ */
+export function describeApplyError(
+  error: unknown,
+  phase: 'check' | 'insert' | 'remove' | 'verify',
+  playlist: string,
+): string {
+  const doing = PHASE[phase];
+  const kept =
+    phase === 'check'
+      ? `Nothing in "${playlist}" was changed.`
+      : phase === 'insert'
+        ? `Nothing was removed from "${playlist}", so no track is missing. Replacements already added stay, and Resume skips them.`
+        : phase === 'remove'
+          ? `Every replacement is already in "${playlist}". Greyed-out tracks not yet removed are still there, and Resume carries on from them.`
+          : `The changes to "${playlist}" are made. Only the final check did not finish.`;
+  const lower =
+    phase === 'verify' ? 'choose Resume to run the check again.' : 'choose Resume to continue.';
+  const resume = `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
+  if (error instanceof QuotaExceededError) {
+    return `Spotify says this app has used up its request quota while ${doing}. ${kept} Wait a while, then ${lower}`;
+  }
+  if (error instanceof RateLimitedError) {
+    const minutes = Math.ceil(error.waitMs / 60_000);
+    return `Spotify asked this app to wait about ${String(minutes)} minute${minutes === 1 ? '' : 's'} while ${doing}. ${kept} Wait that long, then ${lower}`;
+  }
+  if (error instanceof AuthError) {
+    return `Your Spotify login ended while ${doing}. ${ID_KEPT} ${kept} Log in again, then scan the playlist again before trying more.`;
+  }
+  if (error instanceof ApiError) {
+    if (error.status === 403) {
+      return `Spotify refused the change while ${doing} (403). You may not be allowed to edit "${playlist}". ${kept} Check that you own it or can edit it.`;
+    }
+    if (error.status === null) {
+      return `Could not reach Spotify while ${doing}. ${kept} Check your connection, then ${lower}`;
+    }
+    return `Spotify returned an error while ${doing} (${String(error.status)}). ${kept} ${resume}`;
+  }
+  if (error instanceof BadResponseError) {
+    return `Spotify sent a reply this app could not read while ${doing}. ${kept} ${resume}`;
+  }
+  return `Something unexpected went wrong while ${doing}. ${kept} ${resume}`;
+}
+
+export function describeStale(playlist: string, dropped: number, unsearched: number): string {
+  const parts = [
+    `"${playlist}" was changed in Spotify after it was scanned, so nothing was applied. Nothing in the playlist was changed.`,
+    'It has been scanned again, and your choices were kept for the tracks that are still there.',
+  ];
+  if (dropped > 0) {
+    parts.push(
+      `${String(dropped)} ${dropped === 1 ? 'track' : 'tracks'} you had looked at ${dropped === 1 ? 'is' : 'are'} no longer in the playlist.`,
+    );
+  }
+  if (unsearched > 0) {
+    parts.push(
+      `${String(unsearched)} broken ${unsearched === 1 ? 'track was' : 'tracks were'} not searched. Choose Find fixes again to include ${unsearched === 1 ? 'it' : 'them'}.`,
+    );
+  }
+  parts.push('Look over the choices, then choose Apply again.');
+  return parts.join(' ');
+}

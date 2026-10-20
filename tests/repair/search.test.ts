@@ -76,6 +76,7 @@ function fakeClient(answers: Record<string, unknown[]> = {}, fail?: (q: string) 
       if (error) return Promise.reject(error);
       return Promise.resolve({ tracks: { items: answers[q] ?? [] } });
     },
+    send: () => Promise.reject(new Error('Searching never writes')),
   };
   return { client, queries };
 }

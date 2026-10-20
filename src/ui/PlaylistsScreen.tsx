@@ -1,6 +1,10 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { buildApplyPlan, type Verification } from '../repair/apply';
+import { rebaseRun } from '../repair/rebase';
+import type { Selection } from '../repair/review';
 import { createSearchCache, findFixes, type FixRun } from '../repair/search';
 import {
+  buildScanResult,
   estimateScanRequests,
   scanAll,
   scanPlaylist,
@@ -13,7 +17,14 @@ import { listPlaylists } from '../spotify/endpoints';
 import type { PlaylistSummary, Profile } from '../spotify/types';
 import { browserEnv } from './boot';
 import { FindFixesPanel, type FindProgress } from './FindFixesPanel';
-import { describeScanError, describeSearchError, describeSearchFailures } from './messages';
+import { ApplyScreen } from './ApplyScreen';
+import { DoneScreen } from './DoneScreen';
+import {
+  describeScanError,
+  describeSearchError,
+  describeSearchFailures,
+  describeStale,
+} from './messages';
 import { ReviewScreen } from './ReviewScreen';
 import { createSessionClient } from './session';
 
@@ -49,6 +60,12 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
   const [includeLocal, setIncludeLocal] = useState<Record<string, boolean>>({});
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  // What the user decided on Review, kept while they look at Apply and when they come back.
+  const [decisions, setDecisions] = useState<
+    Record<string, { selection: Selection; removeAnyway: ReadonlySet<number> }>
+  >({});
+  const [applying, setApplying] = useState<string | null>(null);
+  const [finished, setFinished] = useState<{ id: string; verification: Verification } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +99,9 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
     setResults((current) => ({ ...current, [playlist.id]: result }));
     // A rescan can change positions, so an earlier search no longer lines up with the playlist.
     setFixRuns((current) =>
+      Object.fromEntries(Object.entries(current).filter(([id]) => id !== playlist.id)),
+    );
+    setDecisions((current) =>
       Object.fromEntries(Object.entries(current).filter(([id]) => id !== playlist.id)),
     );
     setRowErrors((current) =>
@@ -204,6 +224,96 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
 
   const busy = scanning.size > 0 || finding !== null;
 
+  /** The playlist changed after the scan: scan again and carry the user's choices over. */
+  async function handleStale(playlist: PlaylistSummary, currentSnapshotId: string) {
+    const run = fixRuns[playlist.id];
+    const decision = decisions[playlist.id];
+    setApplying(null);
+    try {
+      const scan = await scanPlaylist(client, { ...playlist, snapshotId: currentSnapshotId });
+      if (!run || !decision) {
+        recordResult(playlist, scan);
+        return;
+      }
+      const rebased = rebaseRun(run, decision.selection, scan);
+      setResults((current) => ({ ...current, [playlist.id]: scan }));
+      setFixRuns((current) => ({ ...current, [playlist.id]: rebased.run }));
+      setDecisions((current) => ({
+        ...current,
+        [playlist.id]: { selection: rebased.selection, removeAnyway: new Set() },
+      }));
+      setReviewNotice(describeStale(playlist.name, rebased.dropped, rebased.unsearched));
+    } catch (error) {
+      if (error instanceof AuthError) onSessionEnded(describeScanError(error));
+      else {
+        setReviewing(null);
+        setRowErrors((current) => ({
+          ...current,
+          [playlist.id]: `"${playlist.name}" changed in Spotify after the scan, so nothing was applied, and the rescan failed. ${describeScanError(error, playlist.name)}`,
+        }));
+      }
+    }
+  }
+
+  function handleDone(playlist: PlaylistSummary, verification: Verification) {
+    const scan = buildScanResult(playlist.id, verification.snapshotId, verification.entries);
+    setResults((current) => ({ ...current, [playlist.id]: scan }));
+    // Positions changed, so the old search no longer lines up with the playlist.
+    const without = <T,>(record: Record<string, T>) =>
+      Object.fromEntries(Object.entries(record).filter(([id]) => id !== playlist.id));
+    setFixRuns(without);
+    setDecisions(without);
+    setApplying(null);
+    setReviewing(null);
+    setFinished({ id: playlist.id, verification });
+  }
+
+  const finishedPlaylist =
+    finished !== null && loaded.state === 'ready'
+      ? loaded.playlists.find((p) => p.id === finished.id)
+      : undefined;
+  if (finished && finishedPlaylist) {
+    return (
+      <DoneScreen
+        playlistId={finishedPlaylist.id}
+        playlistName={finishedPlaylist.name}
+        verification={finished.verification}
+        onClose={() => {
+          setFinished(null);
+        }}
+      />
+    );
+  }
+
+  const applyingRun = applying === null ? undefined : fixRuns[applying];
+  const applyingScan = applying === null ? undefined : results[applying];
+  const applyingDecision = applying === null ? undefined : decisions[applying];
+  const applyingPlaylist =
+    loaded.state === 'ready' ? loaded.playlists.find((p) => p.id === applying) : undefined;
+  if (applyingRun && applyingScan && applyingDecision && applyingPlaylist) {
+    return (
+      <ApplyScreen
+        client={client}
+        playlistName={applyingPlaylist.name}
+        scan={applyingScan}
+        plan={buildApplyPlan(
+          applyingScan,
+          applyingRun.rows,
+          applyingDecision.selection,
+          applyingDecision.removeAnyway,
+        )}
+        onStale={(snapshot) => void handleStale(applyingPlaylist, snapshot)}
+        onDone={(verification) => {
+          handleDone(applyingPlaylist, verification);
+        }}
+        onBack={() => {
+          setApplying(null);
+        }}
+        onSessionEnded={onSessionEnded}
+      />
+    );
+  }
+
   const reviewedRun = reviewing === null ? undefined : fixRuns[reviewing];
   const reviewedPlaylist =
     loaded.state === 'ready' ? loaded.playlists.find((p) => p.id === reviewing) : undefined;
@@ -214,8 +324,24 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
         run={reviewedRun}
         sessionRequests={stats.requests}
         notice={reviewNotice}
+        startSelection={decisions[reviewedPlaylist.id]?.selection}
+        startRemoveAnyway={decisions[reviewedPlaylist.id]?.removeAnyway}
+        presentUris={
+          new Set(
+            (results[reviewedPlaylist.id]?.entries ?? []).flatMap(
+              ({ entry }) => entry.item?.uri ?? [],
+            ),
+          )
+        }
         onBack={() => {
           setReviewing(null);
+        }}
+        onApply={(selection, removeAnyway) => {
+          setDecisions((current) => ({
+            ...current,
+            [reviewedPlaylist.id]: { selection, removeAnyway },
+          }));
+          setApplying(reviewedPlaylist.id);
         }}
       />
     );

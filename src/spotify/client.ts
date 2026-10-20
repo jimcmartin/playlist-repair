@@ -29,8 +29,8 @@ export class BadResponseError extends Error {
 
 /** A 429 with `"reason": "QUOTA_EXCEEDED"`. Waiting a few seconds will not help, so it is never retried. */
 export class QuotaExceededError extends Error {
-  constructor(path: string) {
-    super(`GET ${path} was refused: quota exceeded`);
+  constructor(path: string, method = 'GET') {
+    super(`${method} ${path} was refused: quota exceeded`);
     this.name = 'QuotaExceededError';
   }
 }
@@ -40,8 +40,8 @@ export class RateLimitedError extends Error {
   /** How long Spotify asked the app to wait. */
   readonly waitMs: number;
 
-  constructor(path: string, waitMs: number) {
-    super(`GET ${path} was rate limited`);
+  constructor(path: string, waitMs: number, method = 'GET') {
+    super(`${method} ${path} was rate limited`);
     this.name = 'RateLimitedError';
     this.waitMs = waitMs;
   }
@@ -59,6 +59,8 @@ export type QueryParams = Record<string, string | number | undefined>;
 export interface SpotifyClient {
   /** GETs a path under the API base URL and returns the parsed JSON body. */
   get: (path: string, params?: QueryParams) => Promise<unknown>;
+  /** Sends a JSON body with POST or DELETE and returns the parsed JSON reply, or null if it had none. */
+  send: (method: 'POST' | 'DELETE', path: string, body: unknown) => Promise<unknown>;
 }
 
 export interface ClientOptions {
@@ -113,7 +115,12 @@ export function createClient({ env, clientId, sleep, onEvent }: ClientOptions): 
     else inFlight -= 1;
   }
 
-  async function run(path: string, params: QueryParams): Promise<unknown> {
+  async function run(
+    method: 'GET' | 'POST' | 'DELETE',
+    path: string,
+    params: QueryParams,
+    body?: unknown,
+  ): Promise<unknown> {
     const url = buildUrl(path, params);
     let refreshed = false;
     let rateLimitRetries = 0;
@@ -128,10 +135,22 @@ export function createClient({ env, clientId, sleep, onEvent }: ClientOptions): 
       let response: Response;
       let json: unknown;
       try {
-        response = await env.fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+        response = await env.fetch(
+          url,
+          method === 'GET'
+            ? { headers: { Authorization: `Bearer ${accessToken}` } }
+            : {
+                method,
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body),
+              },
+        );
         json = await response.json().catch(() => null);
       } catch {
-        throw new ApiError(null, `GET ${path} got no response`);
+        throw new ApiError(null, `${method} ${path} got no response`);
       }
 
       if (response.status === 401) {
@@ -148,13 +167,13 @@ export function createClient({ env, clientId, sleep, onEvent }: ClientOptions): 
       if (response.status === 429) {
         if (isQuotaExceeded(json)) {
           onEvent?.({ type: 'quota-exceeded', path });
-          throw new QuotaExceededError(path);
+          throw new QuotaExceededError(path, method);
         }
         const retryAfterMs = parseRetryAfter(response.headers.get('Retry-After'));
         onEvent?.({ type: 'rate-limited', path, retryAfterMs });
         const waitMs = retryAfterMs ?? RATE_LIMIT_DEFAULT_WAIT_MS;
         if (waitMs > RATE_LIMIT_MAX_WAIT_MS || rateLimitRetries >= RATE_LIMIT_MAX_RETRIES) {
-          throw new RateLimitedError(path, waitMs);
+          throw new RateLimitedError(path, waitMs, method);
         }
         rateLimitRetries += 1;
         pausedUntil = Math.max(pausedUntil, env.now() + waitMs);
@@ -162,21 +181,32 @@ export function createClient({ env, clientId, sleep, onEvent }: ClientOptions): 
       }
 
       if (!response.ok) {
-        throw new ApiError(response.status, `GET ${path} returned ${String(response.status)}`);
+        throw new ApiError(
+          response.status,
+          `${method} ${path} returned ${String(response.status)}`,
+        );
       }
       return json;
     }
   }
 
+  async function queued(
+    method: 'GET' | 'POST' | 'DELETE',
+    path: string,
+    params: QueryParams,
+    body?: unknown,
+  ): Promise<unknown> {
+    await acquire();
+    try {
+      return await run(method, path, params, body);
+    } finally {
+      release();
+    }
+  }
+
   return {
-    async get(path, params = {}) {
-      await acquire();
-      try {
-        return await run(path, params);
-      } finally {
-        release();
-      }
-    },
+    get: (path, params = {}) => queued('GET', path, params),
+    send: (method, path, body) => queued(method, path, {}, body),
   };
 }
 

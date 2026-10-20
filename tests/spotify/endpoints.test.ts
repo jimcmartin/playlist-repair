@@ -3,6 +3,9 @@ import { BadResponseError, createClient } from '../../src/spotify/client';
 import {
   getPlaylistItems,
   getProfile,
+  getSnapshotId,
+  insertItems,
+  removeItems,
   listPlaylists,
   searchTracks,
 } from '../../src/spotify/endpoints';
@@ -346,5 +349,50 @@ describe('searchTracks', () => {
   it('throws when the reply has no tracks list', async () => {
     const { client } = clientFor(() => json({}));
     await expect(searchTracks(client, 'x')).rejects.toBeInstanceOf(BadResponseError);
+  });
+});
+
+describe('playlist writes', () => {
+  it('reads the snapshot id', async () => {
+    const { client, calls } = clientFor(() => json({ snapshot_id: 'abc' }));
+    expect(await getSnapshotId(client, 'p1')).toBe('abc');
+    expect(new URL(calls[0]?.url ?? '').search).toBe('?fields=snapshot_id');
+  });
+
+  it('fails clearly when the reply has no snapshot id', async () => {
+    const { client } = clientFor(() => json({}));
+    await expect(getSnapshotId(client, 'p1')).rejects.toBeInstanceOf(BadResponseError);
+  });
+
+  it('inserts URIs in the body at a position', async () => {
+    const { client, calls } = clientFor(() => json({ snapshot_id: 'n1' }, 201));
+    expect(await insertItems(client, 'p1', ['u1', 'u2'], 4)).toBe('n1');
+    expect(calls[0]).toMatchObject({ method: 'POST', body: { uris: ['u1', 'u2'], position: 4 } });
+    expect(calls[0]?.url).toBe(`${API}/playlists/p1/items`);
+  });
+
+  it('removes by URI with the snapshot id, and never sends positions', async () => {
+    const { client, calls } = clientFor(() => json({ snapshot_id: 'n2' }));
+    expect(await removeItems(client, 'p1', ['u1', 'u2'], 'n1')).toBe('n2');
+    expect(calls[0]).toMatchObject({
+      method: 'DELETE',
+      body: { items: [{ uri: 'u1' }, { uri: 'u2' }], snapshot_id: 'n1' },
+    });
+    expect(JSON.stringify(calls[0]?.body)).not.toMatch(/position/);
+  });
+
+  it('leaves the snapshot id out when there is none', async () => {
+    const { client, calls } = clientFor(() => json({ snapshot_id: 'n2' }));
+    await removeItems(client, 'p1', ['u1'], null);
+    expect(calls[0]?.body).toEqual({ items: [{ uri: 'u1' }] });
+  });
+
+  it('refuses more than 100 URIs, or none', async () => {
+    const { client, calls } = clientFor(() => json({}));
+    const many = Array.from({ length: 101 }, (_, i) => `u${String(i)}`);
+    await expect(insertItems(client, 'p1', many, 0)).rejects.toThrow(RangeError);
+    await expect(removeItems(client, 'p1', many, null)).rejects.toThrow(RangeError);
+    await expect(removeItems(client, 'p1', [], null)).rejects.toThrow(RangeError);
+    expect(calls).toHaveLength(0);
   });
 });

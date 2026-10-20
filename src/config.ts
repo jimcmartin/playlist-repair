@@ -59,6 +59,9 @@ export const RATE_LIMIT_MAX_RETRIES = 5;
 /** Playlists scanned at once by "Scan all". The client's throttle still applies. */
 export const SCAN_ALL_CONCURRENCY = 2;
 
+/** Spotify takes at most 100 URIs in one insert or removal. */
+export const WRITE_BATCH_SIZE = 100;
+
 // --- Matching engine ---------------------------------------------------------
 // Starting values from the plan. They are tuned against real fixtures in milestone 5.
 

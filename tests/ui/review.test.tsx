@@ -66,7 +66,14 @@ const run: FixRun = {
 };
 
 const html = renderToStaticMarkup(
-  <ReviewScreen playlistName="Road Trip" run={run} sessionRequests={42} onBack={() => undefined} />,
+  <ReviewScreen
+    playlistName="Road Trip"
+    run={run}
+    sessionRequests={42}
+    presentUris={new Set()}
+    onBack={() => undefined}
+    onApply={() => undefined}
+  />,
 );
 
 describe('ReviewScreen notice', () => {
@@ -76,7 +83,9 @@ describe('ReviewScreen notice', () => {
       run={run}
       sessionRequests={1}
       notice="Spotify returned an error for 1 track."
+      presentUris={new Set()}
       onBack={() => undefined}
+      onApply={() => undefined}
     />,
   );
 

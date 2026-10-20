@@ -134,8 +134,8 @@ The login reply is handled once at startup, before React renders, because a code
 | Playlist version | `GET /playlists/{id}?fields=snapshot_id` | Checked again just before writing |
 | Playlist contents | `GET /playlists/{id}/items` | 50 per page; each entry's track is under `item` (`track` is deprecated) |
 | Find candidates | `GET /search?type=track` | 10 results per request; supports `isrc:`, `track:`, `artist:` and `album:` filters. Checked on Oct 6, 2026: `isrc:` finds a known track, but `tracks.total` can say 0 while `items` holds a result, so read `items.length`, never `total` |
-| Insert | `POST /playlists/{id}/items` | Up to 100 URIs, with a zero-based `position` |
-| Remove | `DELETE /playlists/{id}/items` | Up to 100 `{ uri }` objects, with `snapshot_id` |
+| Insert | `POST /playlists/{id}/items` | Body `{ uris, position }`: up to 100 URIs and a zero-based `position`. Replies 201 with `snapshot_id`. Local-file URIs are not documented, and the app never inserts one |
+| Remove | `DELETE /playlists/{id}/items` | Body `{ items: [{ uri }], snapshot_id }`: up to 100 URIs. **Removal is by URI only**: Spotify's reference (checked Oct 19, 2026) has no `positions` or `tracks` field, and says nothing about duplicates or `spotify:local:` URIs |
 
 **Client behavior.**
 
@@ -251,17 +251,19 @@ Inserts happen before removals, so a failure partway leaves extra tracks in the 
 1. **Check the version.** Fetch `snapshot_id` again. If it changed since the scan, rescan and keep the user's decisions for tracks that are still there.
 2. **Back up.** Offer a JSON download of the playlist as scanned: position, URI, title, artists, album and date added. The option is on by default.
 3. **Insert.** Work from the bottom of the playlist up, so earlier positions stay valid. Each replacement goes in at its dead track's position. Neighboring replacements share one call.
-4. **Remove.** Delete the dead URIs in batches of 100, passing the latest `snapshot_id`.
+4. **Remove.** Delete the dead URIs in batches of 100, passing the latest `snapshot_id`. Removal is by URI, so it takes out every copy of a URI. Local files go in their own batches, tried one at a time if a batch is refused.
 5. **Verify.** Fetch the playlist again and confirm each dead URI is gone and each replacement is where it should be. Show a summary.
 
-Progress is tracked per track in memory, so Resume continues after an error instead of starting over.
+Progress is tracked per step in memory, so Resume continues after an error instead of starting over. The version check is not repeated on Resume, since the app's own writes change it. If an insert failed, Resume first reads the playlist: an insert whose reply was lost but whose tracks are in place is marked done, so nothing is added twice.
+
+**Built in milestone 6.** `src/repair/apply.ts` builds the plan (`buildApplyPlan`) and runs it (`applyRepair`); `backup.ts` makes the backup file; `rebase.ts` carries the user's choices to a fresh scan when the playlist changed. Neighbors share an insert call, which is placed at the first of their positions, so a kept local file ends up after the replacements of its run of neighbors. The verifying rescan compares the whole playlist with the scanned one plus the planned changes, and the Done screen lists any difference.
 
 **Edge cases.**
 
 - **Replacement already in the playlist.** The default action becomes remove-only, and the row says why.
-- **Dead track listed more than once.** Insert the replacement at each position. Milestone 6 confirms that removing by URI removes every occurrence.
+- **Dead track listed more than once.** Insert the replacement at each position, and remove the URI once. Removing a URI is expected to remove every occurrence, which Jim's copy test confirms. Every occurrence gets the replacement chosen for the first one, because removal cannot leave one behind. If Spotify removes only some, the verifying rescan reports the rest.
 - **No match.** The track stays. "Remove anyway" is offered per track and is off by default.
-- **Local files.** Each local file is replaced like a dead track, and the backup file keeps its original entry. Removing a `spotify:local:` URI through the API is untested, so milestone 6 checks it on a copy and falls back to removing by position if URI removal fails.
+- **Local files.** Each local file is replaced like a dead track, and the backup file keeps its original entry. The removal endpoint takes URIs only, so there is no position fallback, and the replace-all endpoint is never used, since the API cannot add local files back. The app tries to remove the `spotify:local:` URI. If Spotify refuses, or the file is still there after the rescan, the replacement stays inserted, the file stays, and the Done screen lists the files to delete by hand.
 - **Someone else's collaborative playlist.** Listed with a label, and repaired only if the user can edit it.
 
 Replacements get today's date as their "date added". The backup file keeps the original dates, and the review screen says so before the user applies.
@@ -566,8 +568,8 @@ Real data from Jim's playlists, Oct 6, 2026: a local file has `is_local: true`, 
 - [x] Does search need the `user-read-private` scope to use the account's country? (milestone 4) **No. Search worked with only the four playlist scopes on Oct 6, 2026, with no 403. The scopes stay as they are. Whether results follow the account's country is not directly visible, but every result came back playable.**
 - [ ] Which `restrictions.reason` values appear in real playlists, and can a greyed-out track have none? (milestone 4) *Partly answered on Oct 6, 2026: on one playlist, all 4 tracks with `is_playable: false` had reason `market`, and none had no reason. Other values (`explicit`, `product`) have not been seen, and one playlist is a small sample.*
 - [x] Does the app owner need to add themselves under User Management, or are they allowed automatically? (milestone 3) **No. The owner is allowed automatically: Jim logged in on Oct 6, 2026 without adding his account.**
-- [ ] Does removing by URI remove every occurrence of that track? (milestone 6)
-- [ ] Can a `spotify:local:` entry be removed by URI, or only by position? (milestone 6)
+- [x] Does removing by URI remove every occurrence of that track? (milestone 6) **Yes. Tested by Jim on a copy of a playlist on Oct 20, 2026: the same dead track was listed twice, each was given the replacement, and one removal by URI took out both dead copies, leaving two copies of the replacement.**
+- [x] Can a `spotify:local:` entry be removed by URI, or only by position? (milestone 6) **No. Tested by Jim on Oct 20, 2026: the local file was not removed by URI. The DELETE endpoint takes no positions (Spotify's reference, checked Oct 19, 2026), so a local file cannot be removed through the API. The replacement is inserted, the file stays, and the Done screen lists it to delete by hand. Not recorded: whether Spotify answered with an error or a 200 that changed nothing. The app handles both.**
 - [x] Which image hosts does album art come from, for the Content Security Policy? (milestone 4) **Four hosts seen on Jim's playlists on Oct 6, 2026: `i.scdn.co` (album art), `mosaic.scdn.co`, `image-cdn-ak.spotifycdn.com` and `image-cdn-fa.spotifycdn.com`. The `-ak` and `-fa` names suggest more CDN variants exist, so milestone 7 should allow `https://*.scdn.co` and `https://*.spotifycdn.com` in `img-src`, not just these four.**
 - [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows. *Partly answered on Oct 6, 2026. The rate limit was never hit: 0 rate limits over about 800 requests at 2 in flight, so the throttle stays at 2. The quota was hit: a first "Scan all" sent 437 requests with no limit, and a second one stopped with 2 `QUOTA_EXCEEDED` replies after 360 requests, having scanned 120 playlists. That is about 800 requests in one session. Spotify publishes no numbers or reset time. Scanning worked again when Jim tried on Oct 18, twelve days after the quota stop, so the reset is somewhere within that window. The exact reset time is still unknown.*
 - [ ] Is the hosted site acceptable under Developer Policy section VII.2, or should the project be self-run only?

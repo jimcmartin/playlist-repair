@@ -56,13 +56,35 @@ interface Props {
   sessionRequests: number;
   /** Why the search ended early or skipped tracks, if it did. */
   notice?: string | null;
+  /** Decisions to start from, when the user comes back from Apply or the playlist was rescanned. */
+  startSelection?: Selection | undefined;
+  startRemoveAnyway?: ReadonlySet<number> | undefined;
+  /** URIs already in the playlist, so a replacement that is there only needs the dead track removed. */
+  presentUris: ReadonlySet<string>;
   onBack: () => void;
+  onApply: (selection: Selection, removeAnyway: ReadonlySet<number>) => void;
 }
 
-export function ReviewScreen({ playlistName, run, sessionRequests, notice, onBack }: Props) {
-  const [selection, setSelection] = useState<Selection>(() => initialSelection(run.rows));
+export function ReviewScreen({
+  playlistName,
+  run,
+  sessionRequests,
+  notice,
+  startSelection,
+  startRemoveAnyway,
+  presentUris,
+  onBack,
+  onApply,
+}: Props) {
+  const [selection, setSelection] = useState<Selection>(
+    () => startSelection ?? initialSelection(run.rows),
+  );
+  const [removeAnyway, setRemoveAnyway] = useState<ReadonlySet<number>>(
+    () => startRemoveAnyway ?? new Set(),
+  );
   const groups = groupRows(run.rows);
   const chosen = selectedCount(selection);
+  const total = chosen + removeAnyway.size;
 
   return (
     <>
@@ -78,10 +100,21 @@ export function ReviewScreen({ playlistName, run, sessionRequests, notice, onBac
         </p>
       )}
       <p className="notice" role="status">
-        {plural(chosen, 'replacement', 'replacements')} selected. Applying them comes in the next
-        step, so for now this screen only shows what would change.
+        {plural(chosen, 'replacement', 'replacements')} selected
+        {removeAnyway.size > 0 && `, ${plural(removeAnyway.size, 'track', 'tracks')} to remove`}.
+        Replacements get today&apos;s date as their date added; the backup file you can save before
+        applying keeps the original dates.
       </p>
       <div className="actions">
+        <button
+          type="button"
+          disabled={total === 0}
+          onClick={() => {
+            onApply(selection, removeAnyway);
+          }}
+        >
+          {total === 0 ? 'Apply' : `Apply ${plural(total, 'change', 'changes')}`}
+        </button>
         <button type="button" className="secondary" onClick={onBack}>
           Back to playlists
         </button>
@@ -113,6 +146,16 @@ export function ReviewScreen({ playlistName, run, sessionRequests, notice, onBac
                   key={row.position}
                   row={row}
                   playlistName={playlistName}
+                  presentUris={presentUris}
+                  removeAnyway={removeAnyway.has(row.position)}
+                  onRemoveAnyway={(checked) => {
+                    setRemoveAnyway((current) => {
+                      const next = new Set(current);
+                      if (checked) next.add(row.position);
+                      else next.delete(row.position);
+                      return next;
+                    });
+                  }}
                   choice={selection[row.position] ?? { candidateUri: null, selected: false }}
                   onToggle={(checked) => {
                     setSelection((current) => setRowSelected(current, row.position, checked));
@@ -165,12 +208,24 @@ function GroupCheckbox({
 interface RowProps {
   row: FixRow;
   playlistName: string;
+  presentUris: ReadonlySet<string>;
+  removeAnyway: boolean;
+  onRemoveAnyway: (checked: boolean) => void;
   choice: RowChoice;
   onToggle: (checked: boolean) => void;
   onPick: (uri: string) => void;
 }
 
-function ReviewRow({ row, playlistName, choice, onToggle, onPick }: RowProps) {
+function ReviewRow({
+  row,
+  playlistName,
+  presentUris,
+  removeAnyway,
+  onRemoveAnyway,
+  choice,
+  onToggle,
+  onPick,
+}: RowProps) {
   const match = chosenMatch(row, choice);
   const replacement = match ? row.tracks[match.candidate.uri] : undefined;
   const differences = match ? describeDifferences(match) : [];
@@ -221,7 +276,24 @@ function ReviewRow({ row, playlistName, choice, onToggle, onPick }: RowProps) {
             />{' '}
             Replace “{row.dead.title}” with this
           </label>
+          {choice.selected && presentUris.has(match.candidate.uri) && (
+            <p className="muted">
+              This replacement is already in the playlist, so the greyed-out track is only removed.
+            </p>
+          )}
         </>
+      )}
+      {!match && (
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={removeAnyway}
+            onChange={(e) => {
+              onRemoveAnyway(e.target.checked);
+            }}
+          />{' '}
+          Remove “{row.dead.title}” from the playlist anyway
+        </label>
       )}
       {row.matches.length > 1 && (
         <details>

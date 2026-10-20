@@ -201,3 +201,50 @@ describe('client', () => {
     expect((error as Error).message).not.toMatch(/access-0|refresh-0/);
   });
 });
+
+describe('client writes', () => {
+  it('sends a JSON body with the method, to the API host only', async () => {
+    const { client, calls } = setUp(() => json({ snapshot_id: 's1' }, 201));
+    expect(await client.send('POST', '/playlists/p/items', { uris: ['a'], position: 2 })).toEqual({
+      snapshot_id: 's1',
+    });
+    expect(calls[0]).toMatchObject({
+      url: `${API}/playlists/p/items`,
+      method: 'POST',
+      body: { uris: ['a'], position: 2 },
+    });
+    expect(calls[0]?.headers.get('Authorization')).toBe('Bearer access-0');
+    expect(calls[0]?.headers.get('Content-Type')).toBe('application/json');
+  });
+
+  it('waits and retries a write after a 429, since the first try did nothing', async () => {
+    let n = 0;
+    const { client, calls, waits } = setUp(() =>
+      ++n === 1 ? tooManyRequests('3') : json({ snapshot_id: 's2' }),
+    );
+    await client.send('DELETE', '/playlists/p/items', { items: [{ uri: 'a' }] });
+    expect(calls.map((c) => c.method)).toEqual(['DELETE', 'DELETE']);
+    expect(waits).toEqual([3000]);
+  });
+
+  it('stops on a quota error and names the method', async () => {
+    const { client, calls } = setUp(() => tooManyRequests(undefined, { reason: 'QUOTA_EXCEEDED' }));
+    await expect(client.send('POST', '/playlists/p/items', {})).rejects.toThrow(
+      /POST .* quota exceeded/,
+    );
+    expect(calls).toHaveLength(1);
+  });
+
+  it('reports a failed write with its status', async () => {
+    const { client } = setUp(() => json({}, 403));
+    await expect(client.send('DELETE', '/playlists/p/items', {})).rejects.toMatchObject({
+      status: 403,
+      message: 'DELETE /playlists/p/items returned 403',
+    });
+  });
+
+  it('does not count a reply with no body as a failure', async () => {
+    const { client } = setUp(() => new Response(null, { status: 200 }));
+    expect(await client.send('DELETE', '/playlists/p/items', {})).toBeNull();
+  });
+});
