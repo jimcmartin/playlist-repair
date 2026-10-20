@@ -1,12 +1,10 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import type { Tier } from '../engine';
 import {
   chooseCandidate,
   chosenMatch,
   groupRows,
   groupState,
-  initialSelection,
-  selectedCount,
   selectGroup,
   setRowSelected,
   type RowChoice,
@@ -14,6 +12,7 @@ import {
 } from '../repair/review';
 import type { FixRow, FixRun } from '../repair/search';
 import type { PlaylistItem } from '../spotify/types';
+import { Icon } from './icons';
 import { describeDifferences, formatDuration, spotifyUrl } from './format';
 
 // The fixture export is left out of the production build.
@@ -52,73 +51,29 @@ const TIER_LABEL: Record<Tier, string> = {
 interface Props {
   playlistName: string;
   run: FixRun;
-  /** Requests sent this session, scans and searches together. */
-  sessionRequests: number;
-  /** Why the search ended early or skipped tracks, if it did. */
-  notice?: string | null;
-  /** Decisions to start from, when the user comes back from Apply or the playlist was rescanned. */
-  startSelection?: Selection | undefined;
-  startRemoveAnyway?: ReadonlySet<number> | undefined;
+  /** The user's choices. The window that holds this list keeps them, so Apply can use them. */
+  selection: Selection;
+  removeAnyway: ReadonlySet<number>;
   /** URIs already in the playlist, so a replacement that is there only needs the dead track removed. */
   presentUris: ReadonlySet<string>;
-  onBack: () => void;
-  onApply: (selection: Selection, removeAnyway: ReadonlySet<number>) => void;
+  onSelection: (selection: Selection) => void;
+  onRemoveAnyway: (positions: ReadonlySet<number>) => void;
 }
 
-export function ReviewScreen({
+/** The searched tracks, grouped by how sure the match is, each with its best replacement. */
+export function ReviewList({
   playlistName,
   run,
-  sessionRequests,
-  notice,
-  startSelection,
-  startRemoveAnyway,
+  selection,
+  removeAnyway,
   presentUris,
-  onBack,
-  onApply,
+  onSelection,
+  onRemoveAnyway,
 }: Props) {
-  const [selection, setSelection] = useState<Selection>(
-    () => startSelection ?? initialSelection(run.rows),
-  );
-  const [removeAnyway, setRemoveAnyway] = useState<ReadonlySet<number>>(
-    () => startRemoveAnyway ?? new Set(),
-  );
   const groups = groupRows(run.rows);
-  const chosen = selectedCount(selection);
-  const total = chosen + removeAnyway.size;
 
   return (
     <>
-      <h2>Review fixes</h2>
-      <p>
-        <strong>{playlistName}</strong>: {plural(run.rows.length, 'track', 'tracks')} searched. This
-        run sent {plural(run.requests, 'request', 'requests')} to Spotify; {sessionRequests} this
-        session so far. Nothing in your playlist has been changed.
-      </p>
-      {notice != null && (
-        <p role="alert" className="error">
-          {notice}
-        </p>
-      )}
-      <p className="notice" role="status">
-        {plural(chosen, 'replacement', 'replacements')} selected
-        {removeAnyway.size > 0 && `, ${plural(removeAnyway.size, 'track', 'tracks')} to remove`}.
-        Replacements get today&apos;s date as their date added; the backup file you can save before
-        applying keeps the original dates.
-      </p>
-      <div className="actions">
-        <button
-          type="button"
-          disabled={total === 0}
-          onClick={() => {
-            onApply(selection, removeAnyway);
-          }}
-        >
-          {total === 0 ? 'Apply' : `Apply ${plural(total, 'change', 'changes')}`}
-        </button>
-        <button type="button" className="secondary" onClick={onBack}>
-          Back to playlists
-        </button>
-      </div>
       {run.rows.length === 0 && <p>There was nothing to search for in this playlist.</p>}
       {GROUPS.map(({ tier, title, help }) => {
         const rows = groups[tier];
@@ -134,7 +89,7 @@ export function ReviewScreen({
                   label={`Select all ${title.toLowerCase()}`}
                   state={groupState(selection, rows)}
                   onChange={(checked) => {
-                    setSelection((current) => selectGroup(current, rows, checked));
+                    onSelection(selectGroup(selection, rows, checked));
                   }}
                 />
               )}
@@ -149,19 +104,17 @@ export function ReviewScreen({
                   presentUris={presentUris}
                   removeAnyway={removeAnyway.has(row.position)}
                   onRemoveAnyway={(checked) => {
-                    setRemoveAnyway((current) => {
-                      const next = new Set(current);
-                      if (checked) next.add(row.position);
-                      else next.delete(row.position);
-                      return next;
-                    });
+                    const next = new Set(removeAnyway);
+                    if (checked) next.add(row.position);
+                    else next.delete(row.position);
+                    onRemoveAnyway(next);
                   }}
                   choice={selection[row.position] ?? { candidateUri: null, selected: false }}
                   onToggle={(checked) => {
-                    setSelection((current) => setRowSelected(current, row.position, checked));
+                    onSelection(setRowSelected(selection, row.position, checked));
                   }}
                   onPick={(uri) => {
-                    setSelection((current) => chooseCandidate(current, row, uri));
+                    onSelection(chooseCandidate(selection, row, uri));
                   }}
                 />
               ))}
@@ -171,10 +124,6 @@ export function ReviewScreen({
       })}
     </>
   );
-}
-
-function plural(n: number, one: string, many: string): string {
-  return `${String(n)} ${n === 1 ? one : many}`;
 }
 
 function GroupCheckbox({
@@ -242,14 +191,41 @@ function ReviewRow({
             row.dead.explicit === true && !row.dead.isLocal ? 'Explicit' : null,
           ]}
         />
-        {match && replacement ? (
-          <TrackBlock
-            heading={`Replacement · ${TIER_LABEL[match.tier]}`}
-            item={replacement}
-            fallbackTitle={match.candidate.title}
-            fallbackArtists={match.candidate.artists}
-            badges={[match.candidate.explicit ? 'Explicit' : null]}
-          />
+        {match ? (
+          <button
+            type="button"
+            className={choice.selected ? 'replace-toggle on' : 'replace-toggle'}
+            aria-pressed={choice.selected}
+            onClick={() => {
+              onToggle(!choice.selected);
+            }}
+          >
+            <Icon name="arrow-left" size={18} />
+            Replace
+            <span className="visually-hidden"> “{row.dead.title}”</span>
+          </button>
+        ) : (
+          <span />
+        )}
+        {match ? (
+          <div className="replacement-cell">
+            <TrackBlock
+              heading={`Replacement · ${TIER_LABEL[match.tier]}`}
+              item={replacement}
+              fallbackTitle={match.candidate.title}
+              fallbackArtists={match.candidate.artists}
+              fallbackAlbum={match.candidate.album}
+              fallbackDurationMs={match.candidate.durationMs}
+              badges={[match.candidate.explicit ? 'Explicit' : null]}
+            />
+            {differences.length > 0 && (
+              <ul className="differences" aria-label="Differences from the original">
+                {differences.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         ) : (
           <div className="track-block">
             <span className="muted">Replacement</span>
@@ -259,23 +235,6 @@ function ReviewRow({
       </div>
       {match && (
         <>
-          {differences.length > 0 && (
-            <ul className="differences" aria-label="Differences from the original">
-              {differences.map((label) => (
-                <li key={label}>{label}</li>
-              ))}
-            </ul>
-          )}
-          <label className="inline-check">
-            <input
-              type="checkbox"
-              checked={choice.selected}
-              onChange={(e) => {
-                onToggle(e.target.checked);
-              }}
-            />{' '}
-            Replace “{row.dead.title}” with this
-          </label>
           {choice.selected && presentUris.has(match.candidate.uri) && (
             <p className="muted">
               This replacement is already in the playlist, so the greyed-out track is only removed.
@@ -297,7 +256,7 @@ function ReviewRow({
       )}
       {row.matches.length > 1 && (
         <details>
-          <summary>Choose a different match ({row.matches.length - 1} more)</summary>
+          <summary>Show all potential fixes ({row.matches.length})</summary>
           <ul className="picker">
             {row.matches.map((m) => (
               <li key={m.candidate.uri}>
@@ -310,8 +269,14 @@ function ReviewRow({
                       onPick(m.candidate.uri);
                     }}
                   />{' '}
-                  {m.candidate.title} · {m.candidate.artists.join(', ')} · {m.candidate.album} ·{' '}
-                  {formatDuration(m.candidate.durationMs)} · {TIER_LABEL[m.tier]}
+                  <TrackBlock
+                    item={row.tracks[m.candidate.uri]}
+                    fallbackTitle={m.candidate.title}
+                    fallbackArtists={m.candidate.artists}
+                    fallbackAlbum={m.candidate.album}
+                    fallbackDurationMs={m.candidate.durationMs}
+                    badges={[TIER_LABEL[m.tier], m.candidate.explicit ? 'Explicit' : null]}
+                  />
                 </label>
               </li>
             ))}
@@ -328,22 +293,37 @@ function ReviewRow({
 }
 
 interface BlockProps {
-  heading: string;
-  item: PlaylistItem;
+  /** A label above the track. Left out in the list of all potential fixes. */
+  heading?: string;
+  /** The full result from Spotify, for the links. */
+  item: PlaylistItem | undefined;
   fallbackTitle: string;
   fallbackArtists: string[];
+  fallbackAlbum?: string;
+  fallbackDurationMs?: number | null;
   badges: (string | null)[];
 }
 
-function TrackBlock({ heading, item, fallbackTitle, fallbackArtists, badges }: BlockProps) {
-  const title = item.name ?? fallbackTitle;
-  const trackUrl = spotifyUrl('track', item.id);
-  const albumUrl = spotifyUrl('album', item.albumId);
+function TrackBlock({
+  heading,
+  item,
+  fallbackTitle,
+  fallbackArtists,
+  fallbackAlbum = '',
+  fallbackDurationMs = null,
+  badges,
+}: BlockProps) {
+  const title = item?.name ?? fallbackTitle;
+  const trackUrl = spotifyUrl('track', item?.id ?? null);
+  const albumName = item?.albumName ?? fallbackAlbum;
+  const albumUrl = spotifyUrl('album', item?.albumId ?? null);
   const artists =
-    item.artists.length > 0 ? item.artists : fallbackArtists.map((name) => ({ id: null, name }));
+    item && item.artists.length > 0
+      ? item.artists
+      : fallbackArtists.map((name) => ({ id: null, name }));
   return (
     <div className="track-block">
-      <span className="muted">{heading}</span>
+      {heading !== undefined && <span className="muted">{heading}</span>}
       <strong>
         {trackUrl ? (
           <a href={trackUrl} target="_blank" rel="noreferrer noopener">
@@ -371,15 +351,15 @@ function TrackBlock({ heading, item, fallbackTitle, fallbackArtists, badges }: B
         })}
       </span>
       <span className="muted">
-        {item.albumName === null || item.albumName === '' ? null : albumUrl ? (
+        {albumName === '' ? null : albumUrl ? (
           <a href={albumUrl} target="_blank" rel="noreferrer noopener">
-            {item.albumName}
+            {albumName}
           </a>
         ) : (
-          item.albumName
+          albumName
         )}
         {' · '}
-        {formatDuration(item.durationMs)}
+        {formatDuration(item?.durationMs ?? fallbackDurationMs)}
       </span>
       <span className="badges">
         {badges

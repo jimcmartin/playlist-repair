@@ -69,7 +69,9 @@ test('set up, log in, reload and log out', async ({ page }) => {
 
   await saveClientIdAndLogIn(page);
 
-  await expect(page.getByText('Connected as Test User')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Status' })).toContainText(
+    'Logged in as Test User',
+  );
   // The code is gone from the address bar, and was exchanged exactly once.
   expect(page.url()).toBe(APP_URL);
   expect(tokenRequests).toHaveLength(1);
@@ -87,7 +89,9 @@ test('set up, log in, reload and log out', async ({ page }) => {
   expect(stored.localValues).not.toContain('mock-');
 
   await page.reload();
-  await expect(page.getByText('Connected as Test User')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Status' })).toContainText(
+    'Logged in as Test User',
+  );
   expect(tokenRequests).toHaveLength(1);
 
   await page.getByRole('button', { name: 'Log out' }).click();

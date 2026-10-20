@@ -22,6 +22,13 @@ describe('App', () => {
     expect(html).toContain('<p class="tagline">for Spotify</p>');
   });
 
+  it('shows the logo beside the name, hidden from screen readers', () => {
+    const html = render({ screen: 'setup' });
+
+    expect(html).toMatch(/<span class="logo-mark"><svg class="logo-art"[^>]*aria-hidden="true"/);
+    expect(html).not.toContain('<title>');
+  });
+
   it('shows the redirect URI to register on Setup, and never asks for a secret', () => {
     const html = render({ screen: 'setup' });
 
@@ -61,5 +68,9 @@ describe('App', () => {
     expect(html).toContain('<strong>Jim M</strong>');
     expect(html).toContain('Loading your playlists');
     expect(html).toContain('Log out');
+    // The status bar shows who is logged in, and that playlists are still loading.
+    expect(html).toContain('Logged in as <strong>Jim M</strong>');
+    expect(html).toContain('Loading playlists…');
+    expect(html).toContain('<strong>0</strong> Spotify API requests');
   });
 });

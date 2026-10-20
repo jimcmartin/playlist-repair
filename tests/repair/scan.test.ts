@@ -88,7 +88,7 @@ const summary = (id: string, extra: Partial<PlaylistSummary> = {}): PlaylistSumm
 });
 
 describe('visiblePlaylists', () => {
-  it('keeps owned and collaborative playlists and counts the rest', () => {
+  it('keeps only playlists the user owns, and counts the rest', () => {
     const all = [
       summary('mine'),
       summary('shared', { ownerId: 'sam', collaborative: true }),
@@ -97,8 +97,8 @@ describe('visiblePlaylists', () => {
 
     const { playlists, hidden } = visiblePlaylists(all, 'jim');
 
-    expect(playlists.map((p) => p.id)).toEqual(['mine', 'shared']);
-    expect(hidden).toBe(1);
+    expect(playlists.map((p) => p.id)).toEqual(['mine']);
+    expect(hidden).toBe(2);
   });
 });
 

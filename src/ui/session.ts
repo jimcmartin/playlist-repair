@@ -10,10 +10,15 @@ export interface ClientStats {
   refreshes: number;
 }
 
-export function createSessionClient(
-  env: BrowserEnv,
-  clientId: string,
-): { client: SpotifyClient; stats: ClientStats } {
+export interface SessionClient {
+  client: SpotifyClient;
+  stats: ClientStats;
+  /** Calls `listener` after every request, and returns a function that stops it. For the status bar. */
+  subscribe: (listener: () => void) => () => void;
+}
+
+export function createSessionClient(env: BrowserEnv, clientId: string): SessionClient {
+  const listeners = new Set<() => void>();
   const stats: ClientStats = { requests: 0, rateLimits: [], quotaStops: 0, refreshes: 0 };
   const client = createClient({
     env,
@@ -23,6 +28,7 @@ export function createSessionClient(
       switch (event.type) {
         case 'request':
           stats.requests += 1;
+          for (const listener of listeners) listener();
           break;
         case 'rate-limited':
           stats.rateLimits.push(event.retryAfterMs);
@@ -36,5 +42,14 @@ export function createSessionClient(
       }
     },
   });
-  return { client, stats };
+  return {
+    client,
+    stats,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
 }

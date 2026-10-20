@@ -108,24 +108,33 @@ test('Find fixes survives a timeout, shows what was found, and can be run again'
 
   const row = page.getByRole('listitem').filter({ hasText: 'Best ZZ Top' });
   await row.getByRole('button', { name: 'Scan' }).click();
-  await expect(row.getByText('3 broken tracks')).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Best ZZ Top' });
+  await expect(dialog.getByText('3 broken tracks')).toBeVisible();
 
-  await row.getByRole('button', { name: 'Find fixes' }).click();
-  await row.getByRole('button', { name: /^Search 3 tracks/ }).click();
+  // The estimate is shown in a confirmation first.
+  await dialog.getByRole('button', { name: 'Find fixes' }).click();
+  await expect(page.getByRole('dialog', { name: 'Search for fixes?' })).toContainText(
+    'up to 9 requests',
+  );
+  await page.getByRole('button', { name: /^Search 3 tracks/ }).click();
 
-  // The timeout fails one track; the others are shown.
-  await expect(page.getByRole('heading', { name: 'Review fixes' })).toBeVisible();
-  await expect(page.getByRole('alert')).toContainText('Spotify returned an error for 1 track');
-  await expect(page.getByText('Song a').first()).toBeVisible();
+  // The timeout fails one track; the others are shown, with their best match.
+  await expect(dialog.getByRole('alert')).toContainText('Spotify returned an error for 1 track');
+  await expect(dialog.getByText('Song a').first()).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Apply 1 fix' })).toBeEnabled();
 
-  // Back to the playlists, then try again after the timeout clears.
+  // Try again after the timeout clears: only the failed track is searched.
   failing.clear();
-  await page.getByRole('button', { name: 'Back to playlists' }).click();
-  await expect(row.getByText('3 broken tracks')).toBeVisible();
-  await row.getByRole('button', { name: 'Find fixes' }).click();
-  await row.getByRole('button', { name: /^Search 1 track/ }).click();
-  await expect(page.getByRole('heading', { name: 'Review fixes' })).toBeVisible();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Find fixes' }).click();
+  await page.getByRole('button', { name: /^Search 1 track/ }).click();
+  await expect(dialog.getByRole('alert')).toHaveCount(0);
+
+  // Everything is searched now, so Find fixes says so instead of offering a search for 0 tracks.
+  await dialog.getByRole('button', { name: 'Find fixes' }).click();
+  await expect(dialog.getByRole('status')).toContainText(
+    'already searched earlier in this session',
+  );
+  await expect(page.getByRole('dialog', { name: 'Search for fixes?' })).toHaveCount(0);
 
   expect(errors).toEqual([]);
   // One load, at the start: the page never reloaded.

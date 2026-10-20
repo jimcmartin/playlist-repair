@@ -83,29 +83,67 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('lists owned and collaborative playlists, and says how many are left out', async ({
-  page,
-}) => {
+test('lists only playlists you own, and says how many are left out', async ({ page }) => {
   await expect(page.getByText('Road Trip Mix')).toBeVisible();
-  await expect(page.getByText('Collaborative, owned by Sam')).toBeVisible();
-  await expect(page.getByText('Someone Else')).toHaveCount(0);
-  await expect(page.getByText(/1 playlist you follow/)).toBeVisible();
+  await expect(page.getByText('Shared Drive')).toHaveCount(0);
+  await expect(page.getByText('Someone Else', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/2 playlists owned by someone else/)).toBeVisible();
 });
 
-test('scans one playlist and shows its broken count', async ({ page }) => {
+test('shows a status bar with the user, the playlist count and the request count', async ({
+  page,
+}) => {
+  const bar = page.getByRole('region', { name: 'Status' });
+  await expect(bar.getByText('Test User')).toBeVisible();
+  await expect(bar.getByText('1 playlist found')).toBeVisible();
+  const text = (await bar.textContent()) ?? '';
+  const before = Number(/(\d+) Spotify API/.exec(text)?.[1]);
+  expect(before).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Scan', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(bar).toContainText(`${String(before + 1)} Spotify API request`);
+});
+
+test('filters the playlists as you type', async ({ page }) => {
+  const search = page.getByRole('searchbox', { name: 'Search playlists' });
+  await search.fill('zzz');
+  await expect(page.getByText('Road Trip Mix')).toHaveCount(0);
+  await expect(page.getByText(/No playlists match/)).toBeVisible();
+  await search.fill('road');
+  await expect(page.getByText('Road Trip Mix')).toBeVisible();
+});
+
+test('scanning a playlist opens a window listing the broken tracks and why', async ({ page }) => {
   const row = page.getByRole('listitem').filter({ hasText: 'Road Trip Mix' });
   await row.getByRole('button', { name: 'Scan' }).click();
 
-  await expect(row.getByText('2 broken tracks')).toBeVisible();
-  await expect(row.getByText(/1 hidden by your explicit-content setting/)).toBeVisible();
-  await expect(row.getByText(/1 good track · 0 local files/)).toBeVisible();
-  // The other playlist has not been scanned.
-  await expect(
-    page
-      .getByRole('listitem')
-      .filter({ hasText: 'Shared Drive' })
-      .getByText(/broken/),
-  ).toHaveCount(0);
+  const dialog = page.getByRole('dialog', { name: 'Road Trip Mix' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('2 broken tracks · 0 local files')).toBeVisible();
+  await expect(dialog.getByText('Greyed out: not playable in your market')).toHaveCount(2);
+  await expect(dialog.getByText(/1 hidden by your explicit-content setting/)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Find fixes' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Apply fixes' })).toBeDisabled();
+
+  // Escape closes it, and the row keeps its result and a way back.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(row.getByText('2 broken')).toBeVisible();
+  await row.getByRole('button', { name: 'Review' }).click();
+  await expect(dialog).toBeVisible();
+});
+
+test('a playlist with no problems shows a note and no window', async ({ page }) => {
+  await page.route('https://api.spotify.com/v1/playlists/mix/items**', (route) =>
+    route.fulfill({
+      headers: CORS,
+      json: { items: [playable], total: 1, next: null },
+    }),
+  );
+  const row = page.getByRole('listitem').filter({ hasText: 'Road Trip Mix' });
+  await row.getByRole('button', { name: 'Scan' }).click();
+  await expect(row.getByText('No problems')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('scans everything, and shows raw broken entries in the development panel', async ({
@@ -113,15 +151,14 @@ test('scans everything, and shows raw broken entries in the development panel', 
 }) => {
   await page.getByRole('button', { name: 'Scan all' }).click();
   // Nothing is requested until the estimate is confirmed.
-  await expect(page.getByText(/takes about 2 requests/)).toBeVisible();
-  await page.getByRole('button', { name: 'Scan 2 playlists' }).click();
+  await expect(page.getByText(/takes about 1 request/)).toBeVisible();
+  await page.getByRole('button', { name: 'Scan 1 playlist' }).click();
 
   await expect(
-    page.getByRole('listitem').filter({ hasText: 'Road Trip Mix' }).getByText('2 broken tracks'),
+    page.getByRole('listitem').filter({ hasText: 'Road Trip Mix' }).getByText('2 broken'),
   ).toBeVisible();
-  await expect(
-    page.getByRole('listitem').filter({ hasText: 'Shared Drive' }).getByText('1 broken track'),
-  ).toBeVisible();
+  // Scanning everything does not open a window.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   const panel = page.getByRole('region', { name: 'Development panel' });
   await expect(panel).toBeVisible();

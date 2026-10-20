@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { buildApplyPlan, type Verification } from '../repair/apply';
 import { rebaseRun } from '../repair/rebase';
-import type { Selection } from '../repair/review';
-import { createSearchCache, findFixes, type FixRun } from '../repair/search';
+import { initialSelection, type Selection } from '../repair/review';
+import { createSearchCache, estimateFindRequests, findFixes, type FixRun } from '../repair/search';
 import {
   buildScanResult,
   estimateScanRequests,
@@ -16,7 +16,6 @@ import { AuthError } from '../spotify/auth';
 import { listPlaylists } from '../spotify/endpoints';
 import type { PlaylistSummary, Profile } from '../spotify/types';
 import { browserEnv } from './boot';
-import { FindFixesPanel, type FindProgress } from './FindFixesPanel';
 import { ApplyScreen } from './ApplyScreen';
 import { DoneScreen } from './DoneScreen';
 import {
@@ -25,7 +24,9 @@ import {
   describeSearchFailures,
   describeStale,
 } from './messages';
-import { ReviewScreen } from './ReviewScreen';
+import { Icon } from './icons';
+import { PlaylistDialog, type FindProgress } from './PlaylistDialog';
+import { StatusBar } from './StatusBar';
 import { createSessionClient } from './session';
 
 // The development panel is left out of the production build.
@@ -39,13 +40,18 @@ interface Props {
   onSessionEnded: (message: string) => void;
 }
 
+const ALREADY_SEARCHED =
+  'Every track here was already searched earlier in this session, so no requests were sent to Spotify. The fixes found are shown below.';
+
 type Loaded =
   | { state: 'loading' }
   | { state: 'failed'; message: string }
   | { state: 'ready'; playlists: PlaylistSummary[]; hidden: number; dropped: number };
 
 export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }: Props) {
-  const [{ client, stats }] = useState(() => createSessionClient(browserEnv(), clientId));
+  const [{ client, stats, subscribe }] = useState(() =>
+    createSessionClient(browserEnv(), clientId),
+  );
   const [loaded, setLoaded] = useState<Loaded>({ state: 'loading' });
   const [results, setResults] = useState<Record<string, ScanResult>>({});
   const [scanning, setScanning] = useState<ReadonlySet<string>>(new Set());
@@ -60,6 +66,9 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
   const [includeLocal, setIncludeLocal] = useState<Record<string, boolean>>({});
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+  // A plain message in the window, such as that nothing new needed searching.
+  const [reviewInfo, setReviewInfo] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
   // What the user decided on Review, kept while they look at Apply and when they come back.
   const [decisions, setDecisions] = useState<
     Record<string, { selection: Selection; removeAnyway: ReadonlySet<number> }>
@@ -126,7 +135,9 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
     setNotice(null);
     setBusy(playlist.id, true);
     try {
-      recordResult(playlist, await scanPlaylist(client, playlist));
+      const result = await scanPlaylist(client, playlist);
+      recordResult(playlist, result);
+      if (result.counts.broken + result.counts.local > 0) openDialog(playlist.id);
     } catch (error) {
       recordFailure(playlist, error);
     } finally {
@@ -154,9 +165,10 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
     });
   }
 
-  async function findOne(playlist: PlaylistSummary) {
+  async function findOne(playlist: PlaylistSummary, info: string | null = null) {
     const scan = results[playlist.id];
     if (!scan) return;
+    setReviewInfo(info);
     setConfirmingFind(null);
     setNotice(null);
     setRowErrors((current) =>
@@ -176,53 +188,35 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
       onSessionEnded(describeSearchError(run.stopped, run.rows.length, playlist.name));
       return;
     }
-    const message =
+    // Fresh results start with Exact and High selected. Choices made on an older search are dropped.
+    setDecisions((current) => ({
+      ...current,
+      [playlist.id]: { selection: initialSelection(run.rows), removeAnyway: new Set() },
+    }));
+    setReviewNotice(
       run.stopped !== null
         ? describeSearchError(run.stopped, run.rows.length, playlist.name)
         : run.failed.length > 0
           ? describeSearchFailures(run.failed.length, run.rows.length, playlist.name)
-          : null;
-    setRowErrors((current) =>
-      message === null ? current : { ...current, [playlist.id]: message },
+          : null,
     );
-    // Show what was found, even when the run ended early.
-    if (run.rows.length > 0) {
-      setReviewNotice(message);
-      setReviewing(playlist.id);
-    }
   }
 
-  function renderFind(playlist: PlaylistSummary) {
-    const scan = results[playlist.id];
-    if (!scan) return null;
-    return (
-      <FindFixesPanel
-        scan={scan}
-        cache={searchCache}
-        includeLocal={includeLocal[playlist.id] === true}
-        onIncludeLocal={(include) => {
-          setIncludeLocal((current) => ({ ...current, [playlist.id]: include }));
-        }}
-        confirming={confirmingFind === playlist.id}
-        busy={busy}
-        progress={finding?.id === playlist.id ? finding : null}
-        run={fixRuns[playlist.id]}
-        onAsk={() => {
-          setConfirmingFind(playlist.id);
-        }}
-        onCancel={() => {
-          setConfirmingFind(null);
-        }}
-        onStart={() => void findOne(playlist)}
-        onReview={() => {
-          setReviewNotice(rowErrors[playlist.id] ?? null);
-          setReviewing(playlist.id);
-        }}
-      />
-    );
+  function openDialog(id: string) {
+    setReviewNotice(null);
+    setReviewInfo(null);
+    setReviewing(id);
   }
 
   const busy = scanning.size > 0 || finding !== null;
+  const statusBar = (
+    <StatusBar
+      userName={profile.displayName}
+      playlists={loaded.state === 'ready' ? loaded.playlists.length : null}
+      stats={stats}
+      subscribe={subscribe}
+    />
+  );
 
   /** The playlist changed after the scan: scan again and carry the user's choices over. */
   async function handleStale(playlist: PlaylistSummary, currentSnapshotId: string) {
@@ -274,14 +268,17 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
       : undefined;
   if (finished && finishedPlaylist) {
     return (
-      <DoneScreen
-        playlistId={finishedPlaylist.id}
-        playlistName={finishedPlaylist.name}
-        verification={finished.verification}
-        onClose={() => {
-          setFinished(null);
-        }}
-      />
+      <>
+        <DoneScreen
+          playlistId={finishedPlaylist.id}
+          playlistName={finishedPlaylist.name}
+          verification={finished.verification}
+          onClose={() => {
+            setFinished(null);
+          }}
+        />
+        {statusBar}
+      </>
     );
   }
 
@@ -292,68 +289,54 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
     loaded.state === 'ready' ? loaded.playlists.find((p) => p.id === applying) : undefined;
   if (applyingRun && applyingScan && applyingDecision && applyingPlaylist) {
     return (
-      <ApplyScreen
-        client={client}
-        playlistName={applyingPlaylist.name}
-        scan={applyingScan}
-        plan={buildApplyPlan(
-          applyingScan,
-          applyingRun.rows,
-          applyingDecision.selection,
-          applyingDecision.removeAnyway,
-        )}
-        onStale={(snapshot) => void handleStale(applyingPlaylist, snapshot)}
-        onDone={(verification) => {
-          handleDone(applyingPlaylist, verification);
-        }}
-        onBack={() => {
-          setApplying(null);
-        }}
-        onSessionEnded={onSessionEnded}
-      />
+      <>
+        <ApplyScreen
+          client={client}
+          playlistName={applyingPlaylist.name}
+          scan={applyingScan}
+          plan={buildApplyPlan(
+            applyingScan,
+            applyingRun.rows,
+            applyingDecision.selection,
+            applyingDecision.removeAnyway,
+          )}
+          onStale={(snapshot) => void handleStale(applyingPlaylist, snapshot)}
+          onDone={(verification) => {
+            handleDone(applyingPlaylist, verification);
+          }}
+          onBack={() => {
+            setApplying(null);
+          }}
+          onSessionEnded={onSessionEnded}
+        />
+        {statusBar}
+      </>
     );
   }
 
-  const reviewedRun = reviewing === null ? undefined : fixRuns[reviewing];
-  const reviewedPlaylist =
-    loaded.state === 'ready' ? loaded.playlists.find((p) => p.id === reviewing) : undefined;
-  if (reviewedRun && reviewedPlaylist) {
-    return (
-      <ReviewScreen
-        playlistName={reviewedPlaylist.name}
-        run={reviewedRun}
-        sessionRequests={stats.requests}
-        notice={reviewNotice}
-        startSelection={decisions[reviewedPlaylist.id]?.selection}
-        startRemoveAnyway={decisions[reviewedPlaylist.id]?.removeAnyway}
-        presentUris={
-          new Set(
-            (results[reviewedPlaylist.id]?.entries ?? []).flatMap(
-              ({ entry }) => entry.item?.uri ?? [],
-            ),
-          )
-        }
-        onBack={() => {
-          setReviewing(null);
-        }}
-        onApply={(selection, removeAnyway) => {
-          setDecisions((current) => ({
-            ...current,
-            [reviewedPlaylist.id]: { selection, removeAnyway },
-          }));
-          setApplying(reviewedPlaylist.id);
-        }}
-      />
-    );
-  }
+  const dialogPlaylist =
+    reviewing !== null && loaded.state === 'ready'
+      ? loaded.playlists.find((p) => p.id === reviewing)
+      : undefined;
+  const dialogScan = reviewing === null ? undefined : results[reviewing];
+  const dialogDecision = reviewing === null ? undefined : decisions[reviewing];
+
+  const shown =
+    loaded.state === 'ready'
+      ? loaded.playlists.filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
+      : [];
 
   return (
     <>
-      <h2>Your playlists</h2>
-      <p>
-        Connected as <strong>{profile.displayName}</strong>. Scanning only reads your playlists.
-        Nothing in your account is changed. Requests sent to Spotify this session:{' '}
-        <strong>{stats.requests}</strong>.
+      <div className="page-head">
+        <h2>Your playlists</h2>
+        <button type="button" className="secondary small" onClick={onLogout}>
+          Log out
+        </button>
+      </div>
+      <p className="muted">
+        Scanning only reads your playlists. Nothing in your account is changed until you apply
+        fixes.
       </p>
       {notice !== null && (
         <p role="alert" className="error">
@@ -381,7 +364,34 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
       )}
       {loaded.state === 'ready' && (
         <>
-          {confirmingAll ? (
+          <div className="toolbar">
+            <label className="search">
+              <span className="visually-hidden">Search playlists</span>
+              <Icon name="search" />
+              <input
+                type="search"
+                placeholder="Search playlists"
+                autoComplete="off"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                }}
+              />
+            </label>
+            {!confirmingAll && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy || loaded.playlists.length === 0}
+                onClick={() => {
+                  setConfirmingAll(true);
+                }}
+              >
+                {Object.keys(results).length > 0 ? 'Scan the rest' : 'Scan all'}
+              </button>
+            )}
+          </div>
+          {confirmingAll && (
             <ScanAllConfirm
               playlists={loaded.playlists}
               scanned={new Set(Object.keys(results))}
@@ -390,42 +400,34 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
                 setConfirmingAll(false);
               }}
             />
-          ) : (
-            <div className="actions">
-              <button
-                type="button"
-                disabled={busy || loaded.playlists.length === 0}
-                onClick={() => {
-                  setConfirmingAll(true);
-                }}
-              >
-                {Object.keys(results).length > 0 ? 'Scan the rest' : 'Scan all'}
-              </button>
-            </div>
           )}
           {loaded.playlists.length === 0 && (
-            <p>You do not own or collaborate on any playlists, so there is nothing to scan.</p>
+            <p>You do not own any playlists, so there is nothing to scan.</p>
+          )}
+          {loaded.playlists.length > 0 && shown.length === 0 && (
+            <p role="status">No playlists match “{query.trim()}”.</p>
           )}
           <ul className="playlists">
-            {loaded.playlists.map((playlist) => (
+            {shown.map((playlist) => (
               <PlaylistRow
                 key={playlist.id}
                 playlist={playlist}
-                profileId={profile.id}
                 result={results[playlist.id]}
                 error={rowErrors[playlist.id]}
                 scanning={scanning.has(playlist.id)}
                 onScan={() => void scanOne(playlist)}
+                onReview={() => {
+                  openDialog(playlist.id);
+                }}
                 disabled={busy}
-                find={renderFind(playlist)}
               />
             ))}
           </ul>
           {loaded.hidden > 0 && (
             <p className="fine-print">
-              {loaded.hidden} playlist{loaded.hidden === 1 ? '' : 's'} you follow but do not own or
-              collaborate on {loaded.hidden === 1 ? 'is' : 'are'} not listed. Spotify does not share
-              the contents of those, so they cannot be scanned or repaired.
+              {loaded.hidden} playlist{loaded.hidden === 1 ? '' : 's'} owned by someone else (ones
+              you follow or collaborate on) {loaded.hidden === 1 ? 'is' : 'are'} not listed.
+              Playlist Repair only repairs playlists you own.
             </p>
           )}
           {loaded.dropped > 0 && (
@@ -446,60 +448,125 @@ export function PlaylistsScreen({ profile, clientId, onLogout, onSessionEnded }:
           )}
         </>
       )}
-      <div className="actions">
-        <button type="button" className="secondary" onClick={onLogout}>
-          Log out
-        </button>
-      </div>
+      {dialogPlaylist && dialogScan && (
+        <PlaylistDialog
+          playlistName={dialogPlaylist.name}
+          scan={dialogScan}
+          cache={searchCache}
+          run={fixRuns[dialogPlaylist.id]}
+          selection={dialogDecision?.selection ?? {}}
+          removeAnyway={dialogDecision?.removeAnyway ?? new Set()}
+          includeLocal={includeLocal[dialogPlaylist.id] === true}
+          progress={finding?.id === dialogPlaylist.id ? finding : null}
+          confirming={confirmingFind === dialogPlaylist.id}
+          notice={reviewNotice ?? rowErrors[dialogPlaylist.id] ?? null}
+          info={reviewInfo}
+          onIncludeLocal={(include) => {
+            setIncludeLocal((current) => ({ ...current, [dialogPlaylist.id]: include }));
+          }}
+          onAsk={() => {
+            const wanted = estimateFindRequests(
+              dialogScan,
+              { includeLocal: includeLocal[dialogPlaylist.id] === true },
+              searchCache,
+            );
+            // Everything was searched before, so there is nothing to confirm: show the results.
+            if (wanted.tracks === 0) {
+              void findOne(dialogPlaylist, ALREADY_SEARCHED);
+            } else setConfirmingFind(dialogPlaylist.id);
+          }}
+          onCancelAsk={() => {
+            setConfirmingFind(null);
+          }}
+          onStart={() => void findOne(dialogPlaylist)}
+          onSelection={(selection) => {
+            setDecisions((current) => ({
+              ...current,
+              [dialogPlaylist.id]: {
+                selection,
+                removeAnyway: current[dialogPlaylist.id]?.removeAnyway ?? new Set(),
+              },
+            }));
+          }}
+          onRemoveAnyway={(removeAnyway) => {
+            setDecisions((current) => ({
+              ...current,
+              [dialogPlaylist.id]: {
+                selection: current[dialogPlaylist.id]?.selection ?? {},
+                removeAnyway,
+              },
+            }));
+          }}
+          onApply={() => {
+            setApplying(dialogPlaylist.id);
+          }}
+          onClose={() => {
+            setReviewing(null);
+            setConfirmingFind(null);
+          }}
+        />
+      )}
+      {statusBar}
     </>
   );
 }
 
 interface RowProps {
   playlist: PlaylistSummary;
-  profileId: string;
   result: ScanResult | undefined;
   error: string | undefined;
   scanning: boolean;
   onScan: () => void;
+  onReview: () => void;
   /** Something else is running, so the row's buttons wait. */
   disabled: boolean;
-  find: ReactNode;
 }
 
-function PlaylistRow({
-  playlist,
-  profileId,
-  result,
-  error,
-  scanning,
-  onScan,
-  disabled,
-  find,
-}: RowProps) {
-  const owner =
-    playlist.ownerId === profileId ? null : `Collaborative, owned by ${playlist.ownerName}`;
+/** One line per playlist: name, track count, what the scan found, and its buttons. */
+function PlaylistRow({ playlist, result, error, scanning, onScan, onReview, disabled }: RowProps) {
+  const problems = result ? result.counts.broken + result.counts.local : 0;
   return (
     <li className="playlist-row">
-      <div className="playlist-main">
-        <strong>{playlist.name}</strong>
-        <span className="muted">
-          {[owner, playlist.total === null ? null : `${String(playlist.total)} tracks`]
-            .filter((part) => part !== null)
-            .join(' · ')}
+      <div className="playlist-line">
+        <span className="playlist-name">
+          <Icon name="music" />
+          <strong>{playlist.name}</strong>
         </span>
-        {scanning && <span role="status">Scanning…</span>}
-        {result && !scanning && <ScanSummary result={result} />}
-        {find}
-        {error !== undefined && (
-          <span role="alert" className="error">
-            {error}
-          </span>
-        )}
+        <span className="muted playlist-count">
+          {playlist.total === null ? '–' : plural(playlist.total, 'track', 'tracks')}
+        </span>
+        <span className="playlist-status">
+          {scanning && <span role="status">Scanning…</span>}
+          {result && !scanning && <ScanChip result={result} />}
+        </span>
+        <span className="playlist-actions">
+          {problems > 0 && !scanning && (
+            <button type="button" className="small" disabled={disabled} onClick={onReview}>
+              Review
+            </button>
+          )}
+          <button
+            type="button"
+            className="secondary small"
+            disabled={scanning || disabled}
+            onClick={onScan}
+          >
+            {result ? 'Rescan' : 'Scan'}
+          </button>
+        </span>
       </div>
-      <button type="button" className="secondary" disabled={scanning || disabled} onClick={onScan}>
-        {result ? 'Rescan' : 'Scan'}
-      </button>
+      {result && result.counts.unknown > 0 && (
+        <span className="warning">
+          {plural(result.counts.unknown, 'track', 'tracks')} came back without playability
+          information, so {result.counts.unknown === 1 ? 'it was' : 'they were'} not counted either
+          way.
+        </span>
+      )}
+      {error !== undefined && (
+        <span role="alert" className="error">
+          {error}
+        </span>
+      )}
     </li>
   );
 }
@@ -508,35 +575,20 @@ function plural(n: number, one: string, many: string): string {
   return `${String(n)} ${n === 1 ? one : many}`;
 }
 
-function ScanSummary({ result }: { result: ScanResult }) {
-  const { counts } = result;
-  const others = [
-    counts.explicit > 0 && `${String(counts.explicit)} hidden by your explicit-content setting`,
-    counts.product > 0 && `${String(counts.product)} not available on your plan`,
-    counts['other-restriction'] > 0 &&
-      `${String(counts['other-restriction'])} with another restriction`,
-    counts.removed > 0 && `${String(counts.removed)} removed from Spotify`,
-    counts.episode > 0 && `${plural(counts.episode, 'episode', 'episodes')} skipped`,
-  ].filter((part) => part !== false);
-
+function ScanChip({ result }: { result: ScanResult }) {
+  const { broken, local } = result.counts;
+  if (broken + local === 0) {
+    return (
+      <span className="tag tag-ok">
+        <Icon name="check" size={13} /> No problems
+      </span>
+    );
+  }
   return (
     <>
-      <span className="broken-count">
-        <strong>{plural(counts.broken, 'broken track', 'broken tracks')}</strong>
-        <span className="muted">
-          {' '}
-          · {plural(counts.ok, 'good track', 'good tracks')} ·{' '}
-          {plural(counts.local, 'local file', 'local files')}
-        </span>
-      </span>
-      {others.length > 0 && (
-        <span className="muted">Also shown, not repaired: {others.join(', ')}.</span>
-      )}
-      {counts.unknown > 0 && (
-        <span className="warning">
-          {plural(counts.unknown, 'track', 'tracks')} came back without playability information, so{' '}
-          {counts.unknown === 1 ? 'it was' : 'they were'} not counted either way.
-        </span>
+      {broken > 0 && <span className="tag tag-broken">{plural(broken, 'broken', 'broken')}</span>}
+      {local > 0 && (
+        <span className="tag tag-local">{plural(local, 'local file', 'local files')}</span>
       )}
     </>
   );

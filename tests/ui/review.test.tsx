@@ -1,11 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { rankCandidates } from '../../src/engine';
+import { initialSelection } from '../../src/repair/review';
 import { createSearchCache, type FixRow, type FixRun } from '../../src/repair/search';
-import type { ScanResult } from '../../src/repair/scan';
+import { buildScanResult, type ScanResult } from '../../src/repair/scan';
 import { parseItemsPage, type PlaylistItem } from '../../src/spotify/types';
-import { FindFixesPanel } from '../../src/ui/FindFixesPanel';
-import { ReviewScreen } from '../../src/ui/ReviewScreen';
+import { PlaylistDialog } from '../../src/ui/PlaylistDialog';
+import { ReviewList } from '../../src/ui/ReviewList';
 import { must } from '../helpers/must';
 import { candidate, dead, localFile } from '../helpers/engine';
 
@@ -66,49 +67,20 @@ const run: FixRun = {
 };
 
 const html = renderToStaticMarkup(
-  <ReviewScreen
+  <ReviewList
     playlistName="Road Trip"
     run={run}
-    sessionRequests={42}
+    selection={initialSelection(run.rows)}
+    removeAnyway={new Set()}
     presentUris={new Set()}
-    onBack={() => undefined}
-    onApply={() => undefined}
+    onSelection={() => undefined}
+    onRemoveAnyway={() => undefined}
   />,
 );
 
-describe('ReviewScreen notice', () => {
-  const noticeHtml = renderToStaticMarkup(
-    <ReviewScreen
-      playlistName="Road Trip"
-      run={run}
-      sessionRequests={1}
-      notice="Spotify returned an error for 1 track."
-      presentUris={new Set()}
-      onBack={() => undefined}
-      onApply={() => undefined}
-    />,
-  );
-
-  it('shows why the search was incomplete, above the results', () => {
-    expect(noticeHtml).toContain(
-      '<p role="alert" class="error">Spotify returned an error for 1 track.</p>',
-    );
-    expect(noticeHtml).toContain('Exact (1)');
-  });
-
-  it('shows no alert when the search was complete', () => {
+describe('ReviewList', () => {
+  it('shows no alert', () => {
     expect(html).not.toContain('role="alert"');
-  });
-});
-
-describe('ReviewScreen', () => {
-  it('shows the run and session request counts', () => {
-    expect(html).toContain('This run sent 7 requests');
-    expect(html).toContain('42 this session');
-  });
-
-  it('says nothing has been changed', () => {
-    expect(html).toContain('Nothing in your playlist has been changed');
   });
 
   it('groups rows by tier, with a count in each heading', () => {
@@ -126,10 +98,15 @@ describe('ReviewScreen', () => {
   });
 
   it('starts with Exact and High selected, local files and Review not', () => {
-    const checked = html.match(/<input[^>]*type="checkbox"[^>]*checked=""/g) ?? [];
-    // Two rows start selected (Exact and High), and the Exact group checkbox is fully ticked.
-    expect(checked).toHaveLength(3);
-    expect(html).toContain('2 replacements selected');
+    // Two rows start switched on (Exact and High), and the Exact group checkbox is fully ticked.
+    expect(html.match(/<button[^>]*aria-pressed="true"/g)).toHaveLength(2);
+    expect(html.match(/<button[^>]*aria-pressed="false"/g)).toHaveLength(2);
+    expect(html.match(/<input[^>]*type="checkbox"[^>]*checked=""/g)).toHaveLength(1);
+  });
+
+  it('puts a Replace toggle only on rows that have a replacement', () => {
+    expect(html.match(/class="replace-toggle/g)).toHaveLength(4);
+    expect(html).toContain('Replace<span class="visually-hidden"> “Song”</span>');
   });
 
   it('marks a local file', () => {
@@ -138,6 +115,13 @@ describe('ReviewScreen', () => {
 
   it('marks what differs on a row', () => {
     expect(html).toContain('Replacement is clean');
+  });
+
+  it('shows the differences under the replacement, inside its cell', () => {
+    // After the replacement's own block, and ending with the cell and the pair closing together.
+    const underReplacement =
+      /Replacement · Review.*?<ul class="differences"[^>]*>.*?Replacement is clean.*?<\/ul><\/div><\/div>/;
+    expect(underReplacement.test(html)).toBe(true);
   });
 
   it('links track, album and artist to Spotify', () => {
@@ -152,74 +136,157 @@ describe('ReviewScreen', () => {
     for (const link of links) expect(link).toContain('target="_blank"');
   });
 
-  it('offers a picker when a row has other candidates', () => {
-    expect(html).toContain('Choose a different match (1 more)');
+  it('offers all potential fixes when a row has other candidates', () => {
+    expect(html).toContain('Show all potential fixes (2)');
     expect(html).toContain('type="radio"');
+    // Each candidate is laid out like the other tracks: title, artists, then album and length.
+    const picker = html.slice(html.indexOf('class="picker"'));
+    expect(picker).toContain('<div class="track-block"><strong>');
+    expect(picker).toContain('href="https://open.spotify.com/track/alt"');
   });
 
-  it('says a track with no match stays', () => {
+  it('says a track with no match stays, and offers to remove it', () => {
     expect(html).toContain('This track stays where it is');
+    expect(html).toContain('anyway');
   });
 });
 
-function scanWith(counts: Partial<ScanResult['counts']>): ScanResult {
-  return {
-    playlistId: 'p',
-    snapshotId: 's',
-    entries: [],
-    counts: { ok: 0, broken: 0, local: 0, ...counts } as ScanResult['counts'],
-  };
+const rawEntry = (id: string, extra: Record<string, unknown> = {}, isLocal = false) => ({
+  is_local: isLocal,
+  item: {
+    type: 'track',
+    id: isLocal ? null : id,
+    uri: isLocal ? `spotify:local:${id}` : `spotify:track:${id}`,
+    name: `Song ${id}`,
+    artists: [{ id: null, name: 'Artist' }],
+    album: { name: 'Album' },
+    duration_ms: 200_000,
+    ...extra,
+  },
+});
+
+function scanOf(...entries: ReturnType<typeof rawEntry>[]): ScanResult {
+  return buildScanResult('p', 's', parseItemsPage({ items: entries })?.entries ?? []);
 }
 
-const panel = (overrides: Partial<Parameters<typeof FindFixesPanel>[0]> = {}) =>
+const problemScan = scanOf(
+  rawEntry('ok', { is_playable: true }),
+  rawEntry('b1', { is_playable: false, restrictions: { reason: 'market' } }),
+  rawEntry('b2', { is_playable: false }),
+  rawEntry('l1', {}, true),
+  rawEntry('e1', { is_playable: false, restrictions: { reason: 'explicit' } }),
+);
+
+const dialog = (overrides: Partial<Parameters<typeof PlaylistDialog>[0]> = {}) =>
   renderToStaticMarkup(
-    <FindFixesPanel
-      scan={scanWith({ broken: 2, local: 3 })}
+    <PlaylistDialog
+      playlistName="Road Trip"
+      scan={problemScan}
       cache={createSearchCache()}
-      includeLocal={false}
-      onIncludeLocal={() => undefined}
-      confirming={false}
-      busy={false}
-      progress={null}
       run={undefined}
+      selection={{}}
+      removeAnyway={new Set()}
+      includeLocal={false}
+      progress={null}
+      confirming={false}
+      notice={null}
+      onIncludeLocal={() => undefined}
       onAsk={() => undefined}
-      onCancel={() => undefined}
+      onCancelAsk={() => undefined}
       onStart={() => undefined}
-      onReview={() => undefined}
+      onSelection={() => undefined}
+      onRemoveAnyway={() => undefined}
+      onApply={() => undefined}
+      onClose={() => undefined}
       {...overrides}
     />,
   );
 
-describe('FindFixesPanel', () => {
-  it('has the local-files checkbox off by default', () => {
-    const out = panel();
-    expect(out).toContain('Include local files (3)');
-    expect(out).not.toContain('checked=""');
+describe('PlaylistDialog before a search', () => {
+  it('lists each broken track and local file with what is wrong', () => {
+    const out = dialog();
+    expect(out).toContain('Song b1');
+    expect(out).toContain('Greyed out: not playable in your market');
+    expect(out).toContain('Song b2');
+    expect(out).toContain('Local file: not in Spotify’s catalog');
+    expect(out).not.toContain('Song ok');
+    expect(out).toContain('2 broken tracks · 1 local file');
   });
 
-  it('shows nothing for a playlist with no broken tracks or local files', () => {
-    expect(panel({ scan: scanWith({}) })).toBe('');
+  it('mentions tracks hidden by a setting without listing them as problems', () => {
+    const out = dialog();
+    expect(out).toContain('1 hidden by your explicit-content setting');
+    expect(out).not.toContain('Song e1');
+  });
+
+  it('has the local-files checkbox off by default, and Apply disabled', () => {
+    const out = dialog();
+    expect(out).toContain('Include local files (1)');
+    expect(out).not.toMatch(/<input[^>]*checked=""/);
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Apply fixes<\/button>/);
   });
 
   it('hides the checkbox when there are no local files', () => {
-    expect(panel({ scan: scanWith({ broken: 1 }) })).not.toContain('Include local files');
+    const out = dialog({ scan: scanOf(rawEntry('b1', { is_playable: false })) });
+    expect(out).not.toContain('Include local files');
   });
 
-  it('shows the estimate before anything is sent', () => {
-    const out = panel({ confirming: true });
-    expect(out).toContain('Confirm search');
-    expect(out).toContain('Finding fixes for 0 tracks');
+  it('shows the request estimate in a confirmation before anything is sent', () => {
+    const out = dialog({ confirming: true });
+    expect(out).toContain('Search for fixes?');
+    expect(out).toContain('Finding fixes for 2 tracks takes');
+    expect(out).toContain('up to 4 requests');
+  });
+
+  it('counts local files in the estimate only when included', () => {
+    expect(dialog({ confirming: true, includeLocal: true })).toContain('up to 6 requests');
   });
 
   it('shows progress with the requests so far', () => {
-    const out = panel({ progress: { done: 3, total: 10, requests: 8 } });
+    const out = dialog({ progress: { done: 3, total: 10, requests: 8 } });
     expect(out).toContain('3 of 10 tracks');
-    expect(out).toContain('8 requests so far');
+    expect(out).toContain('8 requests');
+  });
+});
+
+describe('PlaylistDialog info message', () => {
+  it('shows a plain message above the results', () => {
+    const out = dialog({ info: 'Every track here was already searched.' });
+    expect(out).toContain(
+      '<p role="status" class="notice">Every track here was already searched.</p>',
+    );
+  });
+});
+
+describe('PlaylistDialog after a search', () => {
+  const scan = scanOf(
+    ...Array.from({ length: 5 }, (_, i) =>
+      rawEntry(`b${String(i)}`, { is_playable: false, restrictions: { reason: 'market' } }),
+    ),
+  );
+
+  it('shows the fixes, the request count and what a click will do', () => {
+    const out = dialog({ scan, run, selection: initialSelection(run.rows) });
+    expect(out).toContain('5 tracks searched using 7 requests');
+    expect(out).toContain('nothing in your playlist changes until you apply');
+    expect(out).toContain('Exact (1)');
   });
 
-  it('shows the last run’s request count and a way back to the review', () => {
-    const out = panel({ run });
-    expect(out).toContain('5 tracks, 7 requests sent');
-    expect(out).toContain('Review fixes');
+  it('enables Apply once a fix is ticked, and counts them', () => {
+    const out = dialog({ scan, run, selection: initialSelection(run.rows) });
+    expect(out).toContain('Apply 2 fixes');
+    expect(out).not.toMatch(/<button[^>]*disabled=""[^>]*>Apply 2 fixes/);
+  });
+
+  it('keeps Apply disabled when nothing is ticked', () => {
+    const out = dialog({ scan, run, selection: {} });
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*>Apply fixes<\/button>/);
+  });
+
+  it('shows why the search was incomplete, above the results', () => {
+    const out = dialog({ scan, run, notice: 'Spotify returned an error for 1 track.' });
+    expect(out).toContain(
+      '<p role="alert" class="error">Spotify returned an error for 1 track.</p>',
+    );
   });
 });

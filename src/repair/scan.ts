@@ -105,13 +105,16 @@ export function buildScanResult(
 
 export interface VisiblePlaylists {
   playlists: PlaylistSummary[];
-  /** Playlists left out because the user neither owns nor collaborates on them. */
+  /** Playlists left out because someone else owns them: ones the user follows, or collaborates on. */
   hidden: number;
 }
 
-/** Spotify only returns the contents of playlists the user owns or collaborates on. */
+/**
+ * Only playlists the user owns are listed. Spotify returns the contents of playlists
+ * the user collaborates on too, but Playlist Repair leaves other people's playlists alone.
+ */
 export function visiblePlaylists(all: PlaylistSummary[], profileId: string): VisiblePlaylists {
-  const playlists = all.filter((p) => p.ownerId === profileId || p.collaborative);
+  const playlists = all.filter((p) => p.ownerId === profileId);
   return { playlists, hidden: all.length - playlists.length };
 }
 

@@ -30,7 +30,7 @@ Two product goals come from using Playlist Hospital, the existing tool: approve 
 **In**
 
 - Connect with a user-supplied client ID
-- List the playlists the user owns or collaborates on
+- List the playlists the user owns. Playlists owned by someone else are not listed, even ones the user can edit
 - Scan a playlist for unplayable tracks, and count its good, broken and local tracks
 - Replace local files with streaming versions, for playlists the user chooses
 - Find and rank replacement candidates for each one
@@ -264,7 +264,7 @@ Progress is tracked per step in memory, so Resume continues after an error inste
 - **Dead track listed more than once.** Insert the replacement at each position, and remove the URI once. Removing a URI is expected to remove every occurrence, which Jim's copy test confirms. Every occurrence gets the replacement chosen for the first one, because removal cannot leave one behind. If Spotify removes only some, the verifying rescan reports the rest.
 - **No match.** The track stays. "Remove anyway" is offered per track and is off by default.
 - **Local files.** Each local file is replaced like a dead track, and the backup file keeps its original entry. The removal endpoint takes URIs only, so there is no position fallback, and the replace-all endpoint is never used, since the API cannot add local files back. The app tries to remove the `spotify:local:` URI. If Spotify refuses, or the file is still there after the rescan, the replacement stays inserted, the file stays, and the Done screen lists the files to delete by hand.
-- **Someone else's collaborative playlist.** Listed with a label, and repaired only if the user can edit it.
+- **Someone else's playlist.** Not listed, and never repaired, including collaborative ones the user can edit. This replaced the earlier plan to list them with a label (decided Oct 20, 2026, in the UI improvements milestone). The `playlist-read-collaborative` scope is still requested, which is more than the app now needs; dropping it is left for a later change since it forces a new login.
 
 Replacements get today's date as their "date added". The backup file keeps the original dates, and the review screen says so before the user applies.
 
@@ -276,8 +276,8 @@ There is no router. One piece of state decides which screen shows.
 | --- | --- |
 | Setup | Pastes a client ID, with the setup guide beside the field |
 | Connect | Logs in with Spotify |
-| Playlists | Sees owned and collaborative playlists, chooses one and scans it, and sees how many tracks are good, broken and local. Then chooses "Find fixes", with a checkbox to include local files, which is off by default. The screen shows the estimated number of requests first. "Scan all" stays, and also shows its estimate and asks for confirmation before it sends anything |
-| Review | Sees broken tracks grouped by tier, selects a whole group or single rows, and picks a different candidate where needed |
+| Playlists | Sees the playlists they own, one line each with its track count, and filters them by typing in a search box. Scans one, and a window lists its broken tracks and local files and why each is a problem. The window has "Find fixes" and an "Include local files" checkbox (off by default). "Find fixes" first shows a confirmation with the estimated number of requests. Then each track shows its best match with a checkbox, and a link to all potential fixes. "Apply fixes" is enabled once one is ticked. "Scan all" stays, with the same estimate and confirmation. A status bar shows the logged-in user, the number of playlists found and the running count of Spotify requests |
+| Review | Inside the playlist's window: broken tracks grouped by tier, select a whole group or single rows, and pick a different candidate where needed |
 | Apply | Watches progress, and can resume after an error |
 | Done | Reads the summary and opens the playlist in Spotify |
 
@@ -490,6 +490,8 @@ test also answers whether removing by URI removes every occurrence;
 update the plan with the answer. Summarise what you built and anything
 in the plan that proved wrong.
 ```
+
+**UI improvements** (added Oct 20, 2026, after milestone 6): dark UI in the style of Linear (system font stack, since fonts may not be loaded from outside the site, so nothing is downloaded; inline SVG icons; gradients), a compact one-line-per-playlist list, search by typing, owned playlists only, a window per scanned playlist for the problem tracks, Find fixes and the fixes found, and a status bar. Review is now a list inside that window (`ReviewList`, `PlaylistDialog`), and Apply and Done stay full pages.
 
 **Milestone 7: hardening**
 

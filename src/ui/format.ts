@@ -34,3 +34,14 @@ export function describeDifferences(match: Match): string[] {
   }
   return labels;
 }
+
+/** What is wrong with a problem track, in a few words. */
+export function describeProblem(
+  status: 'broken' | 'local',
+  restrictionReason: string | null,
+): string {
+  if (status === 'local') return 'Local file: not in Spotify’s catalog';
+  return restrictionReason === 'market' || restrictionReason === null
+    ? 'Greyed out: not playable in your market'
+    : `Greyed out (${restrictionReason})`;
+}

@@ -109,12 +109,24 @@ test('applies a replacement: backup, insert before remove, verified Done screen'
 
   const row = page.getByRole('listitem').filter({ hasText: 'Best ZZ Top' });
   await row.getByRole('button', { name: 'Scan' }).click();
-  await expect(row.getByText('2 broken tracks')).toBeVisible();
-  await row.getByRole('button', { name: 'Find fixes' }).click();
-  await row.getByRole('button', { name: /^Search 2 tracks/ }).click();
-  await expect(page.getByRole('heading', { name: 'Review fixes' })).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Best ZZ Top' });
+  await expect(dialog.getByText('2 broken tracks')).toBeVisible();
+  // Nothing can be applied before fixes are found and ticked.
+  await expect(dialog.getByRole('button', { name: 'Apply fixes' })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Find fixes' }).click();
+  await page.getByRole('button', { name: /^Search 2 tracks/ }).click();
+  await expect(dialog.getByRole('button', { name: 'Show all potential fixes' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: /^Apply 1 change/ }).click();
+  // The Replace toggle switches the fix off and on, and Apply follows it.
+  const toggle = dialog.getByRole('button', { name: /^Replace/ });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(dialog.getByRole('button', { name: 'Apply fixes' })).toBeDisabled();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+  await dialog.getByRole('button', { name: /^Apply 1 fix/ }).click();
   await expect(page.getByRole('heading', { name: 'Apply changes' })).toBeVisible();
   // Nothing has been written yet.
   expect(log).toEqual([]);
@@ -131,5 +143,5 @@ test('applies a replacement: backup, insert before remove, verified Done screen'
   await expect(page.getByText(/1 replacement added/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Back to playlists' }).click();
-  await expect(row.getByText('1 broken track')).toBeVisible();
+  await expect(row.getByText('1 broken', { exact: true })).toBeVisible();
 });
