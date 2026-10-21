@@ -14,6 +14,7 @@ const clean: Verification = {
   deadLeft: [],
   localLeft: [],
   orderOk: true,
+  localBlocker: null,
 };
 
 const render = (v: Verification) =>
@@ -43,6 +44,16 @@ describe('DoneScreen', () => {
     expect(html).toContain('delete these by hand');
     expect(html).toContain('Old Song · Artist');
     expect(html).toContain('Done, with something to check');
+  });
+
+  it('says why local files could not be dropped', () => {
+    const html = render({
+      ...clean,
+      localLeft: [{ title: 'Old Song', artists: ['Artist'] }],
+      localBlocker: { kind: 'too-long', count: 143 },
+    });
+    expect(html).toContain('143 tracks');
+    expect(render({ ...clean, localLeft: [{ title: 'A', artists: [] }] })).not.toContain('rewrite');
   });
 
   it('flags a greyed-out track that is still there', () => {

@@ -10,17 +10,22 @@ export type Call =
   | { op: 'snapshot' }
   | { op: 'items' }
   | { op: 'insert'; uris: string[]; position: number }
-  | { op: 'remove'; uris: string[] };
+  | { op: 'remove'; uris: string[] }
+  | { op: 'replace'; uris: string[] };
 
 export interface FakePlaylistOptions {
   /** Throws instead of answering for a call, so a test can fail any step. `n` counts all calls. */
   fail?: (call: Call, n: number) => Error | null;
   /** The write goes through, but the reply never arrives. */
   loseReply?: (call: Call, n: number) => boolean;
-  /** Local files cannot be removed. */
+  /** Local files cannot be removed by URI. */
   refuseLocal?: boolean;
+  /** The replace-all write is refused. */
+  refuseReplace?: boolean;
   /** Removing a URI takes out only its first occurrence. */
   removeFirstOnly?: boolean;
+  /** Write replies carry a snapshot id that a later read does not return. */
+  wrongReplyIds?: boolean;
   /** Something else changes the playlist before the first call. */
   version?: string;
 }
@@ -79,6 +84,14 @@ export function fakePlaylist(uris: string[], options: FakePlaylistOptions = {}) 
     },
     send: (method, _path, body) => {
       const b = body as { uris?: string[]; position?: number; items?: { uri: string }[] };
+      if (method === 'PUT') {
+        const call: Call = { op: 'replace', uris: b.uris ?? [] };
+        const error = record(call);
+        if (error) return Promise.reject(error);
+        if (options.refuseReplace) return Promise.reject(new ApiError(400, 'PUT refused'));
+        list = [...call.uris];
+        return replyOrLose(call);
+      }
       if (method === 'POST') {
         const call: Call = { op: 'insert', uris: b.uris ?? [], position: b.position ?? 0 };
         const error = record(call);
@@ -103,7 +116,8 @@ export function fakePlaylist(uris: string[], options: FakePlaylistOptions = {}) 
   };
 
   function replyOrLose(call: Call): Promise<unknown> {
-    const reply = { snapshot_id: bump() };
+    const id = bump();
+    const reply = { snapshot_id: options.wrongReplyIds ? `reply-${id}` : id };
     if (options.loseReply?.(call, calls.length - 1)) {
       return Promise.reject(new ApiError(null, 'got no response'));
     }
@@ -121,6 +135,11 @@ export function fakePlaylist(uris: string[], options: FakePlaylistOptions = {}) 
     uris: () => [...list],
     /** Someone else edits the playlist. */
     editElsewhere: () => bump(),
-    writes: () => calls.filter((c) => c.op === 'insert' || c.op === 'remove'),
+    /** Someone else adds a track. */
+    appendElsewhere: (uri: string) => {
+      list.push(uri);
+      return bump();
+    },
+    writes: () => calls.filter((c) => c.op === 'insert' || c.op === 'remove' || c.op === 'replace'),
   };
 }

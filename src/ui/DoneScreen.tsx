@@ -1,4 +1,5 @@
 import type { TrackRef, Verification } from '../repair/apply';
+import { describeReplaceBlocker } from './messages';
 
 interface Props {
   playlistId: string;
@@ -25,7 +26,8 @@ function TrackList({ tracks }: { tracks: TrackRef[] }) {
 }
 
 export function DoneScreen({ playlistId, playlistName, verification, onClose }: Props) {
-  const { replaced, removedOnly, missing, deadLeft, localLeft, orderOk } = verification;
+  const { replaced, removedOnly, missing, deadLeft, localLeft, orderOk, localBlocker } =
+    verification;
   const clean = missing.length === 0 && deadLeft.length === 0 && orderOk;
   return (
     <>
@@ -78,6 +80,7 @@ export function DoneScreen({ playlistId, playlistName, verification, onClose }: 
             delete these by hand in Spotify:
           </p>
           <TrackList tracks={localLeft} />
+          {localBlocker !== null && <p>{describeReplaceBlocker(localBlocker)}</p>}
         </div>
       )}
       <p className="fine-print">

@@ -1,6 +1,12 @@
 import { WRITE_BATCH_SIZE } from '../config';
-import type { SpotifyClient } from '../spotify/client';
-import { getPlaylistItems, getSnapshotId, insertItems, removeItems } from '../spotify/endpoints';
+import { ApiError, type SpotifyClient } from '../spotify/client';
+import {
+  getPlaylistItems,
+  getSnapshotId,
+  insertItems,
+  removeItems,
+  replaceItems,
+} from '../spotify/endpoints';
 import type { PlaylistEntry } from '../spotify/types';
 import type { Selection } from './review';
 import { isStopError, type ScanResult } from './scan';
@@ -34,6 +40,21 @@ export interface RemovalStep {
   local: boolean;
 }
 
+/** Why the replace-all that drops local files was not used, or did not work. */
+export type ReplaceBlocker =
+  /** Some local file in the playlist is not being replaced or removed. */
+  | { kind: 'local-kept' }
+  /** An entry has no track or URI, so a replace-all would lose it. */
+  | { kind: 'no-track' }
+  /** The playlist was edited after the app's last write. */
+  | { kind: 'edited' }
+  /** More tracks than one call holds. */
+  | { kind: 'too-long'; count: number }
+  /** Reading the playlist for the replace-all failed. */
+  | { kind: 'unreadable' }
+  /** Spotify refused the replace-all. */
+  | { kind: 'refused'; status: number | null };
+
 export interface ApplyPlan {
   playlistId: string;
   /** The version the scan read. */
@@ -44,6 +65,14 @@ export interface ApplyPlan {
   /** In the order they run: bottom of the playlist first. */
   inserts: InsertStep[];
   removals: RemovalStep[];
+  /**
+   * True when every local file in the playlist is being replaced or removed. Spotify cannot
+   * remove a local file by URI, but a replace-all that leaves the files out drops them all.
+   * It is only safe in that case, since the API cannot add a local file back.
+   */
+  replaceLocals: boolean;
+  /** Why `replaceLocals` is false, when the playlist has local files. */
+  replaceBlocker: ReplaceBlocker | null;
   /** For each change, the index in `inserts` that adds its replacement, or -1 if it has none. */
   insertOf: number[];
   /** For each change, the index in `removals` that removes its dead track. */
@@ -137,6 +166,16 @@ export function buildApplyPlan(
   };
 
   const removals = [...removal(false), ...removal(true)];
+  const changed = new Set(changes.map((change) => change.position));
+  const localEntries = scan.entries.filter(({ status }) => status === 'local');
+  const allReplaced = localEntries.every(({ position }) => changed.has(position));
+  // An entry with no track has no URI, so a replace-all would lose it.
+  const allHaveTracks = scan.entries.every(({ entry }) => entry.item !== null);
+  const replaceLocals = localEntries.length > 0 && allReplaced && allHaveTracks;
+  const replaceBlocker: ReplaceBlocker | null =
+    localEntries.length === 0 || replaceLocals
+      ? null
+      : { kind: allReplaced ? 'no-track' : 'local-kept' };
   return {
     playlistId: scan.playlistId,
     snapshotId: scan.snapshotId,
@@ -144,6 +183,8 @@ export function buildApplyPlan(
     changes,
     inserts,
     removals,
+    replaceLocals,
+    replaceBlocker,
     insertOf: changes.map((change) => insertAt.get(change) ?? -1),
     removalOf: changes.map((change) =>
       removals.findIndex((step) => step.uris.includes(change.deadUri)),
@@ -165,7 +206,11 @@ export interface ApplyState {
   removals: StepStatus[];
   /** Local files Spotify would not remove. */
   rejectedLocal: string[];
+  /** Why the replace-all was skipped or refused at run time. */
+  replaceBlocker: ReplaceBlocker | null;
 }
+
+type PurgeResult = 'done' | 'fallback' | { stopped: unknown };
 
 export function createApplyState(plan: ApplyPlan): ApplyState {
   return {
@@ -174,6 +219,7 @@ export function createApplyState(plan: ApplyPlan): ApplyState {
     inserts: plan.inserts.map(() => 'pending'),
     removals: plan.removals.map(() => 'pending'),
     rejectedLocal: [],
+    replaceBlocker: null,
   };
 }
 
@@ -198,6 +244,8 @@ export interface Verification {
   localLeft: TrackRef[];
   /** The playlist is exactly the scanned one with the planned changes. */
   orderOk: boolean;
+  /** Why local files could not be dropped with a replace-all, when some are left. */
+  localBlocker: ReplaceBlocker | null;
 }
 
 export type ApplyOutcome =
@@ -256,6 +304,7 @@ function verify(
   plan: ApplyPlan,
   entries: PlaylistEntry[],
   snapshotId: string | null,
+  localBlocker: ReplaceBlocker | null,
 ): Verification {
   const actualList = entries.map((entry) => entry.item?.uri ?? null);
   const actual = new Set(actualList);
@@ -279,9 +328,60 @@ function verify(
       .map(ref),
     deadLeft: distinct(plan.changes.filter((c) => !c.isLocal && actual.has(c.deadUri))).map(ref),
     localLeft: distinct(plan.changes.filter((c) => c.isLocal && actual.has(c.deadUri))).map(ref),
+    localBlocker,
     orderOk:
       expected.length === actualList.length && expected.every((uri, i) => uri === actualList[i]),
   };
+}
+
+/**
+ * Drops every local file with one replace-all, after the inserts and the other removals. It
+ * writes only if the playlist is still the one we know (no one else edited it), has no entry
+ * without a track, holds no local file we did not plan to remove, and fits in one call.
+ * Otherwise it writes nothing and the caller falls back to removing by URI.
+ */
+async function replaceWithoutLocals(
+  client: SpotifyClient,
+  plan: ApplyPlan,
+  state: ApplyState,
+): Promise<PurgeResult> {
+  const block = (blocker: ReplaceBlocker): 'fallback' => {
+    state.replaceBlocker = blocker;
+    return 'fallback';
+  };
+  let items: PlaylistEntry[];
+  try {
+    items = await getPlaylistItems(client, plan.playlistId);
+  } catch (error) {
+    return isStopError(error) ? { stopped: error } : block({ kind: 'unreadable' });
+  }
+  // Snapshot ids in write replies need not match a later read, so compare the contents: the
+  // playlist must be what the plan's own writes leave, with every local file still in it.
+  const now = items.map((entry) => entry.item?.uri ?? null);
+  const expected = expectedUris(plan, new Set(now));
+  if (expected.length !== now.length || expected.some((uri, i) => uri !== now[i])) {
+    return block({ kind: 'edited' });
+  }
+  const planned = new Set(plan.changes.filter((c) => c.isLocal).map((c) => c.deadUri));
+  const locals = items.filter((entry) => entry.isLocal);
+  // Already gone, for instance when a resume follows a reply that was lost.
+  if (locals.length === 0) return 'done';
+  const uris: string[] = [];
+  for (const { item, isLocal } of items) if (!isLocal && item?.uri != null) uris.push(item.uri);
+  if (uris.length !== items.length - locals.length) return block({ kind: 'no-track' });
+  if (!locals.every((entry) => planned.has(entry.item?.uri ?? ''))) {
+    return block({ kind: 'local-kept' });
+  }
+  if (uris.length > WRITE_BATCH_SIZE) return block({ kind: 'too-long', count: uris.length });
+  try {
+    const snapshot = await replaceItems(client, plan.playlistId, uris);
+    state.snapshotId = snapshot ?? state.snapshotId;
+    return 'done';
+  } catch (error) {
+    // A refusal is not an emergency: nothing was lost, and the files can be tried by URI.
+    if (isStopError(error)) return { stopped: error };
+    return block({ kind: 'refused', status: error instanceof ApiError ? error.status : null });
+  }
 }
 
 /**
@@ -339,6 +439,19 @@ export async function applyRepair(
   // Past this point every insert is done.
   for (const [i, step] of plan.removals.entries()) {
     if (state.removals[i] === 'done') continue;
+    if (step.local && plan.replaceLocals) {
+      const result = await replaceWithoutLocals(client, plan, state);
+      if (result === 'done') {
+        state.removals[i] = 'done';
+        changed();
+        continue;
+      }
+      if (result !== 'fallback') {
+        state.removals[i] = 'failed';
+        changed();
+        return { kind: 'stopped', phase: 'remove', error: result.stopped };
+      }
+    }
     try {
       const snapshot = await removeItems(client, plan.playlistId, step.uris, state.snapshotId);
       state.snapshotId = snapshot ?? state.snapshotId;
@@ -370,8 +483,12 @@ export async function applyRepair(
 
   try {
     const entries = await getPlaylistItems(client, plan.playlistId);
-    const snapshotId = state.snapshotId ?? (await getSnapshotId(client, plan.playlistId));
-    return { kind: 'done', verification: verify(plan, entries, snapshotId) };
+    // Always ask: the ids in write replies need not match what a later read returns.
+    const snapshotId = await getSnapshotId(client, plan.playlistId);
+    return {
+      kind: 'done',
+      verification: verify(plan, entries, snapshotId, plan.replaceBlocker ?? state.replaceBlocker),
+    };
   } catch (error) {
     return { kind: 'stopped', phase: 'verify', error };
   }

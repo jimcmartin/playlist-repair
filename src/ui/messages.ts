@@ -1,3 +1,4 @@
+import type { ReplaceBlocker } from '../repair/apply';
 import { AuthError } from '../spotify/auth';
 import {
   ApiError,
@@ -210,4 +211,24 @@ export function describeStale(playlist: string, dropped: number, unsearched: num
   }
   parts.push('Look over the choices, then choose Apply again.');
   return parts.join(' ');
+}
+
+/** Why the local files could not be dropped in one go. Shown on the Done screen. */
+export function describeReplaceBlocker(blocker: ReplaceBlocker): string {
+  switch (blocker.kind) {
+    case 'local-kept':
+      return 'Local files can only be dropped together, and some local file in this playlist was not replaced or removed. Replace or remove every local file in the playlist to let the app do this.';
+    case 'no-track':
+      return 'The playlist has an entry that Spotify returns without a track, which a rewrite of the playlist would lose, so the app did not try.';
+    case 'edited':
+      return 'The playlist changed while the app was working, so it did not rewrite it. Scan the playlist again and apply again.';
+    case 'too-long':
+      return `The playlist would still have ${String(blocker.count)} tracks, and the app only rewrites a playlist of 100 or fewer in one call.`;
+    case 'unreadable':
+      return 'The app could not read the playlist to rewrite it. Scan the playlist again and apply again.';
+    case 'refused':
+      return blocker.status === null
+        ? 'Spotify did not answer the request to rewrite the playlist.'
+        : `Spotify refused the request to rewrite the playlist (status ${String(blocker.status)}).`;
+  }
 }

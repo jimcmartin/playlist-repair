@@ -6,6 +6,7 @@ import {
   getSnapshotId,
   insertItems,
   removeItems,
+  replaceItems,
   listPlaylists,
   searchTracks,
 } from '../../src/spotify/endpoints';
@@ -394,5 +395,24 @@ describe('playlist writes', () => {
     await expect(removeItems(client, 'p1', many, null)).rejects.toThrow(RangeError);
     await expect(removeItems(client, 'p1', [], null)).rejects.toThrow(RangeError);
     expect(calls).toHaveLength(0);
+  });
+
+  it('replaces the whole playlist by URI, with no snapshot id', async () => {
+    const { client, calls } = clientFor(() => json({ snapshot_id: 'n2' }));
+    expect(await replaceItems(client, 'p1', ['u1', 'u2'])).toBe('n2');
+    expect(calls[0]).toMatchObject({
+      method: 'PUT',
+      url: `${API}/playlists/p1/items`,
+      body: { uris: ['u1', 'u2'] },
+    });
+  });
+
+  it('can empty a playlist, but refuses more than 100 URIs', async () => {
+    const { client, calls } = clientFor(() => json({}));
+    await replaceItems(client, 'p1', []);
+    expect(calls[0]?.body).toEqual({ uris: [] });
+    const many = Array.from({ length: 101 }, (_, i) => `u${String(i)}`);
+    await expect(replaceItems(client, 'p1', many)).rejects.toThrow(RangeError);
+    expect(calls).toHaveLength(1);
   });
 });

@@ -59,8 +59,8 @@ export type QueryParams = Record<string, string | number | undefined>;
 export interface SpotifyClient {
   /** GETs a path under the API base URL and returns the parsed JSON body. */
   get: (path: string, params?: QueryParams) => Promise<unknown>;
-  /** Sends a JSON body with POST or DELETE and returns the parsed JSON reply, or null if it had none. */
-  send: (method: 'POST' | 'DELETE', path: string, body: unknown) => Promise<unknown>;
+  /** Sends a JSON body with POST, PUT or DELETE and returns the parsed JSON reply, or null if it had none. */
+  send: (method: 'POST' | 'PUT' | 'DELETE', path: string, body: unknown) => Promise<unknown>;
 }
 
 export interface ClientOptions {
@@ -116,7 +116,7 @@ export function createClient({ env, clientId, sleep, onEvent }: ClientOptions): 
   }
 
   async function run(
-    method: 'GET' | 'POST' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     path: string,
     params: QueryParams,
     body?: unknown,
@@ -191,7 +191,7 @@ export function createClient({ env, clientId, sleep, onEvent }: ClientOptions): 
   }
 
   async function queued(
-    method: 'GET' | 'POST' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     path: string,
     params: QueryParams,
     body?: unknown,

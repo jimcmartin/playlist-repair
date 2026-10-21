@@ -88,12 +88,13 @@ const done = (outcome: ApplyOutcome) => {
   return outcome.verification;
 };
 
-const writes = (calls: Call[]) => calls.filter((c) => c.op === 'insert' || c.op === 'remove');
+const writes = (calls: Call[]) =>
+  calls.filter((c) => c.op === 'insert' || c.op === 'remove' || c.op === 'replace');
 
 /** No removal comes before an insert. */
 function insertsFirst(calls: Call[]) {
   const w = writes(calls).map((c) => c.op);
-  const firstRemove = w.indexOf('remove');
+  const firstRemove = w.findIndex((op) => op !== 'insert');
   return firstRemove === -1 || !w.slice(firstRemove).includes('insert');
 }
 
@@ -182,6 +183,8 @@ describe('applyRepair', () => {
       'insert',
       'remove',
       'items',
+      // The playlist's version after the writes, read for the Done screen.
+      'snapshot',
     ]);
     expect(v).toMatchObject({
       replaced: 2,
@@ -210,7 +213,7 @@ describe('applyRepair', () => {
 
   it('writes nothing when the playlist changed since the scan', async () => {
     const { playlist, scan } = await setup([dead('1')]);
-    playlist.editElsewhere();
+    playlist.appendElsewhere(t('theirs'));
     const outcome = await run(playlist, plan(scan, { 0: t('r1') }));
     expect(outcome).toEqual({ kind: 'stale', currentSnapshotId: 'v1' });
     expect(writes(playlist.calls)).toEqual([]);
@@ -248,38 +251,152 @@ describe('applyRepair', () => {
   });
 
   describe('local files', () => {
-    it('removes a local file by URI when Spotify allows it', async () => {
+    const OTHER = 'spotify:local:Artist:Album:Other:100';
+    const ops = (calls: Call[]) => writes(calls).map((c) => c.op);
+
+    it('removes every local file with one replace-all, after the inserts', async () => {
+      const { playlist, scan } = await setup([t('a'), LOCAL, dead('1'), OTHER]);
+      const v = done(await run(playlist, plan(scan, { 1: t('r1'), 2: t('r2'), 3: t('r3') })));
+      expect(ops(playlist.calls)).toEqual(['insert', 'remove', 'replace']);
+      expect(playlist.uris()).toEqual([t('a'), t('r1'), t('r2'), t('r3')]);
+      expect(playlist.writes().at(-1)).toEqual({
+        op: 'replace',
+        uris: [t('a'), t('r1'), t('r2'), t('r3')],
+      });
+      expect(v.localLeft).toEqual([]);
+      expect(v.orderOk).toBe(true);
+    });
+
+    it('never tries to remove a local file by URI when it will replace all', async () => {
+      const { playlist, scan } = await setup([LOCAL]);
+      await run(playlist, plan(scan, { 0: t('r0') }));
+      expect(playlist.calls.some((c) => c.op === 'remove' && c.uris.includes(LOCAL))).toBe(false);
+    });
+
+    it('keeps tracks the user left alone, including greyed-out ones', async () => {
+      const { playlist, scan } = await setup([dead('keep'), LOCAL, t('b')]);
+      done(await run(playlist, plan(scan, { 1: t('r1') })));
+      expect(playlist.uris()).toEqual([dead('keep'), t('r1'), t('b')]);
+    });
+
+    it('removes a local file that was only marked remove-anyway', async () => {
       const { playlist, scan } = await setup([t('a'), LOCAL]);
+      const v = done(await run(playlist, plan(scan, { 1: null }, [1])));
+      expect(playlist.uris()).toEqual([t('a')]);
+      expect(v.localLeft).toEqual([]);
+    });
+
+    it('does not replace all while a local file stays', async () => {
+      const { playlist, scan } = await setup([t('a'), LOCAL, OTHER]);
+      const p = plan(scan, { 1: t('r1') });
+      expect(p.replaceLocals).toBe(false);
+      expect(p.replaceBlocker).toEqual({ kind: 'local-kept' });
+      const v = done(await run(playlist, p));
+      expect(v.localBlocker).toEqual({ kind: 'local-kept' });
+      expect(ops(playlist.calls)).not.toContain('replace');
+      expect(playlist.uris()).toContain(OTHER);
+      expect(v.localLeft).toEqual([]);
+    });
+
+    it('does not replace all when the playlist has an entry with no track', async () => {
+      const { scan } = await setup([t('a'), LOCAL]);
+      const withGap = { ...scan, entries: [...scan.entries] };
+      const first = must(withGap.entries[0]);
+      withGap.entries[0] = { ...first, entry: { ...first.entry, item: null }, status: 'removed' };
+      const p = plan(withGap, { 1: t('r1') });
+      expect(p.replaceLocals).toBe(false);
+      expect(p.replaceBlocker).toEqual({ kind: 'no-track' });
+    });
+
+    it('does not replace all when the result would be over 100 tracks', async () => {
+      const many = Array.from({ length: 100 }, (_, i) => t(`m${String(i)}`));
+      const { playlist, scan } = await setup([...many, LOCAL], { refuseLocal: true });
+      const v = done(await run(playlist, plan(scan, { 100: t('r1') })));
+      expect(ops(playlist.calls)).not.toContain('replace');
+      expect(playlist.uris()).toHaveLength(102);
+      expect(v.localLeft).toHaveLength(1);
+      expect(v.localBlocker).toEqual({ kind: 'too-long', count: 101 });
+    });
+
+    it('replaces all at exactly 100 tracks', async () => {
+      const many = Array.from({ length: 99 }, (_, i) => t(`m${String(i)}`));
+      const { playlist, scan } = await setup([...many, LOCAL]);
+      const v = done(await run(playlist, plan(scan, { 99: t('r1') })));
+      expect(ops(playlist.calls)).toContain('replace');
+      expect(playlist.uris()).toHaveLength(100);
+      expect(v.localLeft).toEqual([]);
+    });
+
+    it('does not depend on the snapshot ids in write replies', async () => {
+      const { playlist, scan } = await setup([t('a'), LOCAL], { wrongReplyIds: true });
       const v = done(await run(playlist, plan(scan, { 1: t('r1') })));
       expect(playlist.uris()).toEqual([t('a'), t('r1')]);
       expect(v.localLeft).toEqual([]);
-      expect(v.orderOk).toBe(true);
+      // The version Done hands to the next scan is the playlist's own.
+      expect(v.snapshotId).toMatch(/^v\d+$/);
     });
 
-    it('inserts the replacement and leaves the file when Spotify refuses', async () => {
-      const { playlist, scan } = await setup([t('a'), LOCAL, dead('1')], { refuseLocal: true });
-      const v = done(await run(playlist, plan(scan, { 1: t('r1'), 2: t('r2') })));
-      expect(playlist.uris()).toEqual([t('a'), t('r1'), t('r2'), LOCAL]);
+    it('does not write when the playlist changed after the inserts', async () => {
+      const { playlist, scan } = await setup([t('a'), LOCAL], { refuseLocal: true });
+      const p = plan(scan, { 1: t('r1') });
+      let edited = false;
+      const state = createApplyState(p);
+      const outcome = await applyRepair(playlist.client, p, state, {
+        onProgress: () => {
+          // After the insert, before the replace.
+          if (!edited && state.inserts.every((x) => x === 'done')) {
+            edited = true;
+            playlist.appendElsewhere(t('theirs'));
+          }
+        },
+      });
+      const v = done(outcome);
+      expect(ops(playlist.calls)).not.toContain('replace');
+      expect(playlist.uris()).toContain(LOCAL);
+      expect(v.localLeft).toHaveLength(1);
+      expect(v.localBlocker).toEqual({ kind: 'edited' });
+    });
+
+    it('falls back to removing by URI when Spotify refuses the replace', async () => {
+      const { playlist, scan } = await setup([t('a'), LOCAL], {
+        refuseReplace: true,
+        refuseLocal: true,
+      });
+      const v = done(await run(playlist, plan(scan, { 1: t('r1') })));
+      expect(playlist.uris()).toEqual([t('a'), t('r1'), LOCAL]);
       expect(v.localLeft.map((l) => l.title)).toEqual([`Name of ${LOCAL}`]);
-      expect(v.deadLeft).toEqual([]);
       expect(v.orderOk).toBe(true);
+      expect(v.localBlocker).toEqual({ kind: 'refused', status: 400 });
     });
 
-    it('tries local files one at a time, so one refusal hides no other', async () => {
-      const other = 'spotify:local:Artist:Album:Other:100';
-      const { playlist, scan } = await setup([LOCAL, other], {
+    it('falls back one file at a time, so one refusal hides no other', async () => {
+      const { playlist, scan } = await setup([t('a'), LOCAL, OTHER], {
+        refuseReplace: true,
         fail: (call) =>
           call.op === 'remove' && call.uris.length > 1 ? new ApiError(400, 'bad batch') : null,
       });
-      const v = done(await run(playlist, plan(scan, { 0: t('r0'), 1: t('r1') })));
-      expect(playlist.uris()).toEqual([t('r0'), t('r1')]);
+      const v = done(await run(playlist, plan(scan, { 1: t('r1'), 2: t('r2') })));
+      expect(playlist.uris()).toEqual([t('a'), t('r1'), t('r2')]);
       expect(v.localLeft).toEqual([]);
     });
 
-    it('never calls a replace-all endpoint', async () => {
-      const { playlist, scan } = await setup([LOCAL]);
-      await run(playlist, plan(scan, { 0: t('r0') }));
-      expect(writes(playlist.calls).map((c) => c.op)).toEqual(['insert', 'remove']);
+    it('stops on a quota error from the replace and resumes it', async () => {
+      let failing = true;
+      const { playlist, scan } = await setup([t('a'), LOCAL], {
+        fail: (call) =>
+          failing && call.op === 'replace'
+            ? new QuotaExceededError('/playlists/p/items', 'PUT')
+            : null,
+      });
+      const p = plan(scan, { 1: t('r1') });
+      const state = createApplyState(p);
+      const first = await run(playlist, p, state);
+      expect(first).toMatchObject({ kind: 'stopped', phase: 'remove' });
+      expect(playlist.uris()).toEqual([t('a'), t('r1'), LOCAL]);
+      failing = false;
+      const v = done(await run(playlist, p, state));
+      expect(playlist.uris()).toEqual([t('a'), t('r1')]);
+      expect(v.localLeft).toEqual([]);
     });
   });
 
@@ -335,7 +452,8 @@ describe('applyRepair', () => {
     it('resumes a failed verify without writing again', async () => {
       let items = 0;
       const { playlist, scan } = await setup(start, {
-        fail: (call) => (call.op === 'items' && ++items === 1 ? new ApiError(503, 'later') : null),
+        // The first read is the replace-all's, the second is the verify's.
+        fail: (call) => (call.op === 'items' && ++items === 2 ? new ApiError(503, 'later') : null),
       });
       const p = plan(scan, picks);
       const state = createApplyState(p);
@@ -361,14 +479,17 @@ describe('applyRepair', () => {
 
     it('does not check the version again on resume, since its own writes changed it', async () => {
       let seen = 0;
-      const { playlist, scan } = await setup(start, {
+      const { playlist, scan } = await setup(start.slice(0, 5), {
         fail: () => (++seen === 3 ? new ApiError(500, 'boom') : null),
       });
-      const p = plan(scan, picks);
+      const p = plan(scan, { 1: t('r1'), 2: t('r2'), 4: t('r3') });
       const state = createApplyState(p);
       await run(playlist, p, state);
       await run(playlist, p, state);
-      expect(playlist.calls.filter((c) => c.op === 'snapshot')).toHaveLength(1);
+      // One check before the first write, and one after the last, for the Done screen.
+      const ops = playlist.calls.map((c) => c.op);
+      expect(ops.filter((op) => op === 'snapshot')).toHaveLength(2);
+      expect(ops.indexOf('snapshot', 1)).toBe(ops.length - 1);
     });
   });
 });

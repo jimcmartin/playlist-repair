@@ -104,9 +104,10 @@ export function ApplyScreen({
       </p>
       {locals > 0 && (
         <p className="notice">
-          {plural(locals, 'local file', 'local files')} included. Spotify may not let this app
-          remove a local file. If so, its replacement is still added, the file stays, and the last
-          screen lists the files to delete by hand.
+          {plural(locals, 'local file', 'local files')} included.{' '}
+          {plan.replaceLocals
+            ? 'Spotify cannot remove a local file one at a time, so once every replacement is added the app saves the playlist again without its local files. Every other track keeps its place and date added. If Spotify refuses, the replacements stay, the files stay, and the last screen lists the files to delete by hand.'
+            : 'Some local files in this playlist are not being replaced or removed, and Spotify cannot remove a local file one at a time. Each replacement is still added, the local files stay, and the last screen lists the ones to delete by hand.'}
         </p>
       )}
       {!started && (

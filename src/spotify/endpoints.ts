@@ -119,3 +119,20 @@ export async function removeItems(
   if (snapshotId !== null) body.snapshot_id = snapshotId;
   return parseSnapshotId(await client.send('DELETE', itemsPath(playlistId), body));
 }
+
+/**
+ * PUT /playlists/{id}/items: makes the playlist exactly these URIs, in this order. It is the only
+ * way to drop a local file, since removal by URI does not work for one. It takes no snapshot_id,
+ * and one call holds at most 100 URIs, so there is no way to continue a longer list safely.
+ * Returns the new snapshot_id, or null.
+ */
+export async function replaceItems(
+  client: SpotifyClient,
+  playlistId: string,
+  uris: string[],
+): Promise<string | null> {
+  if (uris.length > WRITE_BATCH_SIZE) {
+    throw new RangeError(`A replace takes up to ${String(WRITE_BATCH_SIZE)} URIs`);
+  }
+  return parseSnapshotId(await client.send('PUT', itemsPath(playlistId), { uris }));
+}
