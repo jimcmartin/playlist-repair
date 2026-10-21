@@ -81,9 +81,11 @@ playlist-repair/
 ├── CLAUDE.md
 ├── README.md
 ├── LICENSE                  MIT
-├── index.html               carries the Content Security Policy meta tag
+├── index.html
 ├── package.json
-├── vite.config.ts           dev server bound to 127.0.0.1:5173
+├── vite.config.ts           dev server bound to 127.0.0.1:5173; adds the Content Security Policy meta tag to the build
+├── playwright.config.ts     e2e against the dev server
+├── playwright.prod.config.ts  e2e specs that need the production build (`*.prod.spec.ts`)
 ├── docs/
 │   ├── technical-plan.md    this file
 │   └── setup-guide.md       how to get a client ID (v1)
@@ -291,13 +293,13 @@ There is no router. One piece of state decides which screen shows.
 These are the claims the project makes to its users, and each one is enforced in code.
 
 - **No backend.** The app is static files. There is nothing to send data to.
-- **Two hosts only.** A Content Security Policy in `index.html` limits `connect-src` to `https://accounts.spotify.com` and `https://api.spotify.com`. Scripts and styles load from the site itself, and images from the site and Spotify's image hosts.
+- **Two hosts only.** A Content Security Policy in the built `index.html` limits `connect-src` to `https://accounts.spotify.com` and `https://api.spotify.com`. Scripts and styles load from the site itself, and images from the site and Spotify's image hosts.
 - **No third-party code at runtime.** No analytics, fonts, CDNs or error reporters.
 - **No secret.** The app never asks for a client secret, and the setup guide tells users not to paste one.
 - **Short-lived tokens.** Tokens stay in `sessionStorage` and are never written to `localStorage`, logs, URLs or the backup file.
 - **Few dependencies.** Two runtime packages, a committed lockfile, and `npm ci` in CI.
 
-GitHub Pages cannot send custom headers, so the policy is a meta tag. The development server needs a looser policy, so the strict one is applied to the production build only.
+GitHub Pages cannot send custom headers, so the policy is a meta tag. The development server needs inline scripts and a WebSocket for hot reload, so a Vite plugin in `vite.config.ts` adds the tag to the production build only, and `index.html` in source has none. The full policy is `default-src 'none'`; `script-src 'self'`; `style-src 'self'`; `connect-src` the two Spotify hosts; `img-src 'self' https://*.scdn.co https://*.spotifycdn.com`; `base-uri 'none'`; `form-action 'none'`. It has no `unsafe-inline`, so the app must not use inline `style` attributes or inline scripts. `e2e/csp.prod.spec.ts` serves the production build on `127.0.0.1:5173` (the only origin the app accepts, so a running dev server must be stopped first), fails on any violation through Setup, login, playlists and a scan, and checks that other hosts, inline script and inline style are blocked. `npm run e2e` runs it after the dev-server specs.
 
 ## Branding rules
 
@@ -495,6 +497,8 @@ in the plan that proved wrong.
 **UI improvements** (added Oct 20, 2026, after milestone 6): dark UI in the style of Linear (system font stack, since fonts may not be loaded from outside the site, so nothing is downloaded; inline SVG icons; gradients), a compact one-line-per-playlist list, search by typing, owned playlists only, a window per scanned playlist for the problem tracks, Find fixes and the fixes found, and a status bar. Review is now a list inside that window (`ReviewList`, `PlaylistDialog`), and Apply and Done stay full pages.
 
 **Milestone 7: hardening**
+
+*Status: the Content Security Policy part is done (Oct 21, 2026). Error-path tests and accessibility are left for after v1.*
 
 ```text
 Read CLAUDE.md and docs/technical-plan.md. Implement milestone 7 only:
