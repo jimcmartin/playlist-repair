@@ -8,6 +8,8 @@ export const API_BASE_URL = 'https://api.spotify.com/v1';
 // Pages the user is sent to by a link. The app never fetches them.
 export const DASHBOARD_URL = 'https://developer.spotify.com/dashboard';
 export const MANAGE_APPS_URL = 'https://www.spotify.com/account/apps/';
+export const SETUP_GUIDE_URL =
+  'https://github.com/jimcmartin/playlist-repair/blob/main/docs/setup-guide.md';
 
 export const SCOPES = [
   'playlist-read-private',

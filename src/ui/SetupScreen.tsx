@@ -1,5 +1,5 @@
 import { useId, useState, type SyntheticEvent } from 'react';
-import { DASHBOARD_URL, MANAGE_APPS_URL } from '../config';
+import { DASHBOARD_URL, MANAGE_APPS_URL, SETUP_GUIDE_URL } from '../config';
 import { normalizeClientId } from '../spotify/auth';
 
 interface Props {
@@ -55,19 +55,39 @@ export function SetupScreen({ redirectUri, error, loggedOut, onSave }: Props) {
           </a>{' '}
           and choose <strong>Create app</strong>.
         </li>
-        <li>Give it any name and description. The name must not contain "Spotify".</li>
         <li>
-          Set the redirect URI to <code>{redirectUri}</code>, exactly as written, including the
-          final slash.
+          Fill in <strong>App name</strong> and <strong>App description</strong> with anything you
+          like. The name must not contain "Spotify".
         </li>
         <li>
-          Choose <strong>Web API</strong>, accept the terms and save.
+          Under <strong>Redirect URIs</strong>, enter <code>{redirectUri}</code>, exactly as
+          written, including the final slash.
         </li>
         <li>
-          Copy the <strong>Client ID</strong> and paste it below. Do not copy the client secret.
-          Playlist Repair never needs it.
+          Choose <strong>Web API</strong> as the API the app will use, tick{' '}
+          <strong>
+            I understand and agree with Spotify's Developer Terms of Service and Design Guidelines
+          </strong>
+          , and save.
+        </li>
+        <li>
+          Under <strong>Basic Information</strong> on the app's page, copy the{' '}
+          <strong>Client ID</strong> and paste it into the <strong>Client ID</strong> field. The
+          page opens there when you create the app, and you can find it again by selecting the app
+          on the dashboard.
+        </li>
+        <li>
+          Choose <strong>Save client ID</strong>, then <strong>Log in with Spotify</strong>.
         </li>
       </ol>
+      <p>
+        Do not copy the client secret, and do not open <strong>View client secret</strong>. Playlist
+        Repair never needs it. The same steps are in the{' '}
+        <a href={SETUP_GUIDE_URL} target="_blank" rel="noreferrer">
+          setup guide
+        </a>
+        .
+      </p>
       <form onSubmit={handleSubmit} noValidate>
         <label htmlFor={inputId}>Client ID</label>
         <input
