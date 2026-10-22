@@ -90,7 +90,8 @@ playlist-repair/
 ├── playwright.site.config.ts  e2e specs for the built landing page (`*.site.spec.ts`)
 ├── docs/
 │   ├── technical-plan.md    this file
-│   └── setup-guide.md       how to get a client ID (v1)
+│   ├── setup-guide.md       how to get a client ID (v1)
+│   └── readme.jpg           the screenshot at the top of the README
 ├── public/                  the app's static files (empty for now)
 ├── site/                    the landing page for playlistrepair.com
 │   ├── index.html           page source, with markers the build fills in
