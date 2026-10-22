@@ -11,7 +11,7 @@ each user connects it with their own Spotify client ID.
 apply, backup and verification all work. There is no hosted app yet and no privacy page. `https://playlistrepair.com/` is meant to serve a
 static landing page, built from `site/`.
 
-**Demo video:** _(link to come)_
+[![Playlist Repair listing a playlist with three broken tracks and one local file. Watch the demo video on playlistrepair.com.](site/public/demo/poster.jpg)](https://playlistrepair.com/#demo)
 
 ## How to use it
 

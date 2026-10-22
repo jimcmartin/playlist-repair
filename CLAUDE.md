@@ -40,6 +40,7 @@ npm test            # Vitest
 npm run build
 npm run e2e         # Playwright against a mocked Spotify API, then the built landing page
 npm run build:site  # landing page into dist-site/ (npm run check runs it too)
+npm run site:video  # downloads demo.mp4 from the site-media release, for local preview
 npm run site:images # remakes site/public/og.png and apple-touch-icon.png
 npm run check       # typecheck, lint, test and build together
 ```

@@ -66,6 +66,14 @@ export function landingPage(): Plugin {
       logo = await renderLogoMark();
       const tokens = readFileSync(resolve(repoRoot, 'src/ui/tokens.css'), 'utf8');
       this.emitFile({ type: 'asset', fileName: 'favicon.svg', source: tileSvg(logo, tokens) });
+      const present = [DEMO_VIDEO, DEMO_POSTER].filter((file) =>
+        existsSync(resolve(repoRoot, 'site/public', file)),
+      );
+      if (present.length === 1) {
+        this.warn(
+          `Only site/public/${present[0] ?? ''} exists. The page needs both ${DEMO_VIDEO} and ${DEMO_POSTER} to show the video.`,
+        );
+      }
       for (const name of ['og.png', 'apple-touch-icon.png']) {
         if (!existsSync(resolve(repoRoot, 'site/public', name))) {
           this.warn(`site/public/${name} is missing. Run npm run site:images.`);

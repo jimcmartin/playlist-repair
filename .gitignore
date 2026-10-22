@@ -1,6 +1,8 @@
+untracked/
 node_modules/
 dist/
 dist-site/
+site/public/demo/demo.mp4
 playwright-report/
 test-results/
 *.local

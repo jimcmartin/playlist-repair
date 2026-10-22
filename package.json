@@ -15,6 +15,7 @@
     "e2e": "playwright test && playwright test -c playwright.prod.config.ts && playwright test -c playwright.site.config.ts",
     "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run build:site",
     "build:site": "vite build -c vite.site.config.ts",
+    "site:video": "gh release download site-media --pattern demo.mp4 --dir site/public/demo --clobber",
     "site:images": "npm run build:site && node site/make-images.ts"
   },
   "dependencies": {

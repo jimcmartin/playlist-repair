@@ -98,7 +98,7 @@ playlist-repair/
 │   ├── plugin.ts            Vite plugin: renders LogoMark, favicon, demo slot, policy
 │   ├── demo.ts              placeholder or video, depending on what exists
 │   ├── make-images.ts       makes the preview and touch-icon PNGs
-│   └── public/              CNAME, og.png, apple-touch-icon.png, later demo/demo.mp4 and poster.jpg
+│   └── public/              CNAME, og.png, apple-touch-icon.png, demo/poster.jpg (demo/demo.mp4 is downloaded, not committed)
 ├── src/
 │   ├── main.tsx
 │   ├── config.ts            scopes, endpoints, thresholds, throttle settings
@@ -335,7 +335,7 @@ Spotify's guidelines apply because the app shows Spotify metadata.
 
 - **Host.** GitHub Pages, deployed by `.github/workflows/deploy.yml` on every push to `main`. It runs `npm run check`, then the landing page's Playwright test, then publishes `dist-site/` with the official Pages actions. The app is not deployed: v1 runs locally only.
 - **Landing page.** `site/` builds with `npm run build:site` (`vite.site.config.ts`) into `dist-site/`, separate from the app's `dist/`. It is static HTML and CSS with no script, and carries its own Content Security Policy meta tag (`default-src 'none'`; `style-src`, `img-src` and `media-src` `'self'`). The design tokens (`src/ui/tokens.css`) and the logo tile (`src/ui/logo.css`) are the app's own, imported by both. The logo drawing is rendered from `src/ui/LogoMark.tsx` at build time, and the favicon is built from that drawing and the tokens. `npm run site:images` makes `og.png` (1200x630) and `apple-touch-icon.png` from the favicon, and the results are committed. `e2e/landing.site.spec.ts` checks the built page loads, has no policy violations, every internal link resolves and the Open Graph tags are there. `npm run e2e` runs it last.
-- **Demo video.** A self-hosted MP4 with a poster: put `demo.mp4` and `poster.jpg` in `site/public/demo/` and the next build swaps the placeholder for the video.
+- **Demo video.** The poster, `site/public/demo/poster.jpg`, is committed and stays under 200 KB. The video is not in git: it is the asset `demo.mp4` on a GitHub Release tagged `site-media`. The deploy workflow downloads it with `gh` and the workflow's own token into `site/public/demo/` before building, and the build then swaps the placeholder for a self-hosted `<video>`, so the page still loads nothing from another host. If the release or the asset is missing, the deploy carries on with the placeholder. `npm run site:video` downloads the same asset for a local preview, and the downloaded file is gitignored. To replace the video, upload the new file over the old asset with `gh release upload site-media demo.mp4 --clobber`, then rerun the **Deploy landing page** workflow, since the page only picks up the new file when it is rebuilt. Keep it a 16:9 H.264 MP4 with `+faststart`, and update the poster in git if its first frame changes.
 - **Domain.** `playlistrepair.com` as the custom domain, with `www` redirecting to it and HTTPS enforced. `site/public/CNAME` keeps the setting across deploys.
 - **CI.** Every push runs typecheck, lint, unit tests and both builds (`npm run check`).
 - **Moving hosts.** The domain is the fixed point. If headers are ever needed, Cloudflare Pages can serve the same build at the same URL.

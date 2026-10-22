@@ -26,6 +26,16 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # The video is a release asset, kept out of git. Without it the page shows its placeholder.
+      - name: Download the demo video
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download site-media --pattern demo.mp4 --dir site/public/demo; then
+            echo "Using demo.mp4 from the site-media release."
+          else
+            echo "::notice::No demo.mp4 on the site-media release. Deploying the placeholder."
+          fi
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test -c playwright.site.config.ts

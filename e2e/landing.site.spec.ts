@@ -41,7 +41,11 @@ test('the page loads with its content, no script and no policy violations', asyn
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }
   await expect(page.getByText('Not affiliated with or endorsed by Spotify.')).toBeVisible();
-  await expect(page.getByText('Placeholder', { exact: true })).toBeVisible();
+  // The demo slot holds the video when the release asset is present, and the placeholder when not.
+  await expect(page.locator('.demo-frame')).toBeVisible();
+  if ((await page.locator('video').count()) === 0) {
+    await expect(page.getByText('Placeholder', { exact: true })).toBeVisible();
+  }
 
   // No client-side JavaScript, and nothing requested from any other origin.
   expect(await page.locator('script').count()).toBe(0);
