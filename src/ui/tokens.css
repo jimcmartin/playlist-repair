@@ -1,0 +1,40 @@
+/* Design tokens shared by the app (app.css) and the landing page (site/site.css).
+   Dark, quiet, and precise: near-black surfaces, hairline borders, one indigo accent with a soft gradient.
+   Fonts are the system's own; nothing is downloaded. */
+:root {
+  color-scheme: dark;
+  --bg: #08090a;
+  --surface: #0f1011;
+  --surface-2: #141516;
+  --raised: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #f1f2f4;
+  --muted: #959aa5;
+  --accent: #7c85f0;
+  --accent-strong: #5e6ad2;
+  --accent-text: #ffffff;
+  --error: #ff8a80;
+  --warn: #f2c265;
+  --ok: #6fd3a0;
+  --notice-surface: rgba(124, 133, 240, 0.1);
+  --radius: 8px;
+  /* The logo tile: a diagonal gradient behind the LogoMark drawing. The favicon and the
+     preview images are built from these two colors and this radius. */
+  --tile-from: #8a93f5;
+  --tile-to: #4a55c4;
+  --tile-radius: 12px;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'SF Pro Text',
+    'Segoe UI',
+    Roboto,
+    system-ui,
+    sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}

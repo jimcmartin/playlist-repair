@@ -27,6 +27,7 @@ It is the source of truth for scope, architecture and build order.
 - `src/repair/` holds the flow: scan, candidate search, apply, backup.
 - `src/ui/` holds React screens and components.
 - `src/config.ts` holds scopes, endpoints, thresholds and throttle settings.
+- `site/` holds the landing page for playlistrepair.com. It shares `src/ui/tokens.css`, `src/ui/logo.css` and `LogoMark` with the app.
 - `tests/` holds unit tests and fixtures. `e2e/` holds Playwright tests.
 
 ## Build and test
@@ -37,7 +38,9 @@ npm run typecheck
 npm run lint
 npm test            # Vitest
 npm run build
-npm run e2e         # Playwright against a mocked Spotify API
+npm run e2e         # Playwright against a mocked Spotify API, then the built landing page
+npm run build:site  # landing page into dist-site/ (npm run check runs it too)
+npm run site:images # remakes site/public/og.png and apple-touch-icon.png
 npm run check       # typecheck, lint, test and build together
 ```
 

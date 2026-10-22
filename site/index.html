@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playlist Repair for Spotify: fix greyed-out tracks</title>
+    <meta
+      name="description"
+      content="Playlist Repair finds the greyed-out tracks in your Spotify playlists, matches each one to a playable version of the same recording, and swaps it in after you approve. Browser-only, open source, no backend."
+    />
+    <meta name="theme-color" content="#08090a" />
+    <link rel="canonical" href="https://playlistrepair.com/" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./site.css" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Playlist Repair" />
+    <meta property="og:title" content="Playlist Repair for Spotify" />
+    <meta
+      property="og:description"
+      content="Finds the greyed-out tracks in your Spotify playlists and swaps in playable versions of the same recording, after you approve. Browser-only, open source, no backend."
+    />
+    <meta property="og:url" content="https://playlistrepair.com/" />
+    <meta property="og:image" content="https://playlistrepair.com/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="The Playlist Repair logo beside the name Playlist Repair, for Spotify."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Playlist Repair for Spotify" />
+    <meta
+      name="twitter:description"
+      content="Finds the greyed-out tracks in your Spotify playlists and swaps in playable versions of the same recording, after you approve."
+    />
+    <meta name="twitter:image" content="https://playlistrepair.com/og.png" />
+    <meta
+      name="twitter:image:alt"
+      content="The Playlist Repair logo beside the name Playlist Repair, for Spotify."
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="hero">
+      <span class="logo-mark"><!--logo-mark--></span>
+      <h1>Playlist Repair</h1>
+      <p class="tagline">for Spotify</p>
+      <p class="lead">
+        Finds the greyed-out tracks in your Spotify playlists, matches each one to a playable
+        version of the same recording, and swaps the matches in after you approve them.
+      </p>
+      <p class="actions">
+        <a class="button" href="https://github.com/jimcmartin/playlist-repair">View on GitHub</a>
+        <a
+          class="button secondary"
+          href="https://github.com/jimcmartin/playlist-repair/blob/main/docs/setup-guide.md"
+          >Setup guide</a
+        >
+      </p>
+      <p class="fine-print">
+        Open source. Runs on your own computer today: there is no hosted version yet.
+        <a href="#get-started">How to run it</a>.
+      </p>
+    </header>
+
+    <main id="main">
+      <section aria-labelledby="demo-heading">
+        <h2 id="demo-heading">See it work</h2>
+        <figure class="demo">
+          <!--demo-->
+        </figure>
+      </section>
+
+      <section aria-labelledby="how-heading">
+        <h2 id="how-heading">How it works</h2>
+        <ol class="steps">
+          <li>
+            <h3>Scan</h3>
+            <p>
+              Pick a playlist you own. A window lists its broken tracks and its local files, and
+              says why each one is a problem.
+            </p>
+          </li>
+          <li>
+            <h3>Review matches, grouped by confidence</h3>
+            <p>
+              Choose <strong>Find fixes</strong>. The app says how many requests that will take
+              before it sends any, then searches for a playable version of each track, starting with
+              the recording's ISRC. Each match lands in one of four groups:
+            </p>
+            <dl class="tiers">
+              <div>
+                <dt>Exact</dt>
+                <dd>Same ISRC, duration within 2 seconds, same explicit flag. Ticked for you.</dd>
+              </div>
+              <div>
+                <dt>High</dt>
+                <dd>
+                  A strong score with a close duration, and the same version and explicit flag.
+                  Ticked for you.
+                </dd>
+              </div>
+              <div>
+                <dt>Review</dt>
+                <dd>
+                  A fair match, or one held back because the version or explicit flag differs. A
+                  live or remix version never reaches the ticked groups for a studio original. Not
+                  ticked.
+                </dd>
+              </div>
+              <div>
+                <dt>None</dt>
+                <dd>Nothing scores well enough. The track is left in place.</dd>
+              </div>
+            </dl>
+          </li>
+          <li>
+            <h3>Approve in bulk</h3>
+            <p>
+              Each row shows the broken track beside its proposed replacement, with the differences
+              marked. Tick a whole group or single rows, and pick a different candidate where the
+              first is wrong.
+            </p>
+          </li>
+          <li>
+            <h3>Apply</h3>
+            <p>
+              Only now does anything change. The app backs up the playlist, inserts the
+              replacements, removes the broken tracks, and checks the result.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section aria-labelledby="safe-heading">
+        <h2 id="safe-heading">Why it&rsquo;s safe</h2>
+        <ul class="cards">
+          <li>
+            <h3>Nothing changes without your approval</h3>
+            <p>A playlist is only written to after you approve on the review screen.</p>
+          </li>
+          <li>
+            <h3>A backup comes first</h3>
+            <p>
+              A JSON file of the playlist as scanned (position, URI, title, artists, album, date
+              added) is downloaded before any change. It is on by default and the file never leaves
+              your computer.
+            </p>
+          </li>
+          <li>
+            <h3>Inserts before removals</h3>
+            <p>
+              Replacements go in before any broken track comes out, so a failure leaves extra tracks
+              and never missing ones. After an error, <strong>Resume</strong> carries on where it
+              stopped.
+            </p>
+          </li>
+          <li>
+            <h3>A verifying rescan</h3>
+            <p>
+              The app reads the playlist again and checks that each broken track is gone and each
+              replacement is in place. It lists any difference.
+            </p>
+          </li>
+          <li>
+            <h3>Nothing leaves your browser except calls to Spotify</h3>
+            <p>
+              There is no backend. A Content Security Policy limits network requests to
+              <code>accounts.spotify.com</code> and <code>api.spotify.com</code>, and there is no
+              analytics, font host, CDN or error reporting. Login uses PKCE, so there is no client
+              secret. Tokens stay in <code>sessionStorage</code> and are gone when the tab closes.
+            </p>
+          </li>
+        </ul>
+        <p class="muted">
+          One thing does change: replacements get today&rsquo;s date as their &ldquo;date
+          added&rdquo;. The backup file keeps the original dates.
+        </p>
+      </section>
+
+      <section aria-labelledby="local-heading">
+        <h2 id="local-heading">Local files</h2>
+        <p>Playlist Repair can replace local files with streaming versions, with limits:</p>
+        <ul>
+          <li>
+            It does so only when you tick <strong>Include local files</strong> for that playlist.
+          </li>
+          <li>
+            A local file has only its tags to go on, with no ISRC. Its match can reach
+            <em>High</em> at best, never <em>Exact</em>, and is never ticked for you. You tick them
+            one by one or with &ldquo;select all&rdquo; for the group.
+          </li>
+          <li>
+            Spotify&rsquo;s API cannot add a local file back, and removing one by its URI does not
+            work. A local file leaves a playlist only through a replace-all, which the app uses only
+            when every local file in the playlist is being replaced or removed and the result has
+            100 tracks or fewer.
+          </li>
+          <li>
+            Otherwise the replacement is still inserted, the local file stays, and the final screen
+            lists the files for you to delete by hand, and says why.
+          </li>
+        </ul>
+      </section>
+
+      <section id="get-started" aria-labelledby="start-heading">
+        <h2 id="start-heading">Get started</h2>
+        <p class="notice">
+          <strong>Playlist Repair runs locally today.</strong> A hosted version isn&rsquo;t
+          available.
+        </p>
+        <p>
+          Spotify&rsquo;s development mode allows at most 5 users per app and needs Premium for the
+          owner, so one shared client ID cannot serve everyone. Each person creates their own
+          Spotify app and pastes in its client ID, which is not a secret. Only playlists you own are
+          listed.
+        </p>
+        <ol>
+          <li>
+            Follow the
+            <a href="https://github.com/jimcmartin/playlist-repair/blob/main/docs/setup-guide.md"
+              >setup guide</a
+            >
+            to create a Spotify app and copy its client ID. It takes about five minutes and is done
+            once.
+          </li>
+          <li>
+            Get the code from
+            <a href="https://github.com/jimcmartin/playlist-repair">GitHub</a>. You need Node.js 24
+            or later. Then run:
+            <pre><code>npm install
+npm run dev</code></pre>
+          </li>
+          <li>
+            Open <code>http://127.0.0.1:5173/</code>, not <code>localhost</code>, paste the client
+            ID, and log in.
+          </li>
+        </ol>
+        <p>
+          The README has the full
+          <a href="https://github.com/jimcmartin/playlist-repair/blob/main/README.md#run-it-locally"
+            >run steps</a
+          >.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        <a href="https://github.com/jimcmartin/playlist-repair/blob/main/LICENSE">MIT license</a>
+        &middot;
+        <a href="https://github.com/jimcmartin/playlist-repair">GitHub</a>
+      </p>
+      <p>Not affiliated with or endorsed by Spotify.</p>
+    </footer>
+  </body>
+</html>

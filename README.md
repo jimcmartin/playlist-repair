@@ -8,7 +8,8 @@ also replace local files with streaming versions. It is a browser-only app with 
 each user connects it with their own Spotify client ID.
 
 **Status:** v1 runs locally on `127.0.0.1`. Setup, login, scanning, candidate search, review,
-apply, backup and verification all work. There is no hosted site yet, and no privacy page.
+apply, backup and verification all work. There is no hosted app yet and no privacy page. `https://playlistrepair.com/` is meant to serve a
+static landing page, built from `site/`.
 
 **Demo video:** _(link to come)_
 
@@ -164,6 +165,7 @@ applying against a real account are checked by hand, on a copy of a playlist.
 - `src/repair/` holds scan, candidate search, apply and backup.
 - `src/ui/` holds the React screens.
 - `src/config.ts` holds scopes, endpoints, thresholds and throttle settings.
+- `site/` holds the landing page. `npm run build:site` builds it into `dist-site/`.
 
 The design, the build order and the questions still open are in the
 [technical plan](docs/technical-plan.md).

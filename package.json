@@ -12,8 +12,10 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "build": "vite build",
-    "e2e": "playwright test && playwright test -c playwright.prod.config.ts",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "e2e": "playwright test && playwright test -c playwright.prod.config.ts && playwright test -c playwright.site.config.ts",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run build:site",
+    "build:site": "vite build -c vite.site.config.ts",
+    "site:images": "npm run build:site && node site/make-images.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

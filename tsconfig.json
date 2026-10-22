@@ -15,9 +15,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "e2e", "*.ts", "*.js"]
+  "include": ["src", "tests", "e2e", "site", "*.ts", "*.js"]
 }

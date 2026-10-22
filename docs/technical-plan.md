@@ -9,7 +9,7 @@ Playlist Repair is a browser-only web app that finds greyed-out tracks in a pers
 - **Language:** TypeScript in strict mode.
 - **Build and UI:** Vite and React, with no router, state library or CSS framework.
 - **Auth:** Authorization Code with PKCE, written by hand on the browser's Web Crypto API.
-- **Hosting:** GitHub Pages at `https://playlistrepair.com/`.
+- **Hosting:** GitHub Pages. `https://playlistrepair.com/` serves the landing page (`site/`). Where the hosted app will live is an open question.
 - **Runtime dependencies:** `react` and `react-dom` only.
 
 The project is done when the site is live, someone other than Jim sets it up from the guide alone and repairs a playlist, and the README explains the design well enough to stand as a portfolio piece.
@@ -49,7 +49,7 @@ Two product goals come from using Playlist Hospital, the existing tool: approve 
 
 **v1, due October 24, 2026**
 
-v1 is milestones 1 to 6, the setup guide, a README and a 30-second demo video. Replacing local files is part of v1, because Jim's own playlists hold far more local files than broken tracks. The repo is public and the app runs locally on `127.0.0.1`. Milestone 7 (hardening) and the rest of milestone 8 (the hosted site and the privacy page) come after v1.
+v1 is milestones 1 to 6, the setup guide, a README and a 30-second demo video. The landing page is built and deployed on its own, and does not host the app. Replacing local files is part of v1, because Jim's own playlists hold far more local files than broken tracks. The repo is public and the app runs locally on `127.0.0.1`. Milestone 7 (hardening) and the rest of milestone 8 (the hosted site and the privacy page) come after v1.
 
 ## Architecture
 
@@ -81,24 +81,31 @@ playlist-repair/
 ├── CLAUDE.md
 ├── README.md
 ├── LICENSE                  MIT
-├── index.html
+├── index.html               the app's page
 ├── package.json
 ├── vite.config.ts           dev server bound to 127.0.0.1:5173; adds the Content Security Policy meta tag to the build
 ├── playwright.config.ts     e2e against the dev server
 ├── playwright.prod.config.ts  e2e specs that need the production build (`*.prod.spec.ts`)
+├── vite.site.config.ts      builds the landing page into `dist-site/`
+├── playwright.site.config.ts  e2e specs for the built landing page (`*.site.spec.ts`)
 ├── docs/
 │   ├── technical-plan.md    this file
 │   └── setup-guide.md       how to get a client ID (v1)
-├── public/
-│   ├── CNAME                playlistrepair.com
-│   └── privacy.html
+├── public/                  the app's static files (empty for now)
+├── site/                    the landing page for playlistrepair.com
+│   ├── index.html           page source, with markers the build fills in
+│   ├── site.css             imports the app's tokens and logo tile from src/ui
+│   ├── plugin.ts            Vite plugin: renders LogoMark, favicon, demo slot, policy
+│   ├── demo.ts              placeholder or video, depending on what exists
+│   ├── make-images.ts       makes the preview and touch-icon PNGs
+│   └── public/              CNAME, og.png, apple-touch-icon.png, later demo/demo.mp4 and poster.jpg
 ├── src/
 │   ├── main.tsx
 │   ├── config.ts            scopes, endpoints, thresholds, throttle settings
 │   ├── engine/              no imports from outside this folder
 │   ├── spotify/
 │   ├── repair/
-│   └── ui/
+│   └── ui/                  includes `tokens.css` and `logo.css`, shared with `site/`
 ├── tests/
 │   ├── engine/              unit tests
 │   ├── spotify/             unit tests, with a fake `fetch`
@@ -107,7 +114,7 @@ playlist-repair/
 │   ├── helpers/             fakes shared by the tests
 │   └── fixtures/            real dead-track and candidate pairs
 ├── e2e/                     Playwright, against a mocked API
-└── .github/workflows/       check on every push, deploy on main
+└── .github/workflows/       check on every push; deploy the landing page on main
 ```
 
 ## Authentication
@@ -123,7 +130,7 @@ The app uses Authorization Code with PKCE, which needs no client secret.
 
 The login reply is handled once at startup, before React renders, because a code can only be exchanged once and React's StrictMode runs effects twice in development. Concurrent refreshes share one request, because Spotify replaces the refresh token on use.
 
-**Redirect URI.** The redirect URI is the site root, `https://playlistrepair.com/`, with the trailing slash. Every static host serves the root, so this works without a router or host-specific rewrites. Local development uses `http://127.0.0.1:5173/`. The production value is permanent: every user registers it in their own Spotify app, so changing it later breaks their setup. The app picks the redirect URI from the origin it is served from. On any other origin, including `http://localhost:5173`, it shows a message pointing to `http://127.0.0.1:5173/` and does not start a login.
+**Redirect URI.** The redirect URI is the site root, `https://playlistrepair.com/`, with the trailing slash. Every static host serves the root, so this works without a router or host-specific rewrites. Local development uses `http://127.0.0.1:5173/`. The site root now holds the landing page, not the app, so this value points at a page that cannot complete a login until the hosted app has a home (see the open questions). The production value is permanent: every user registers it in their own Spotify app, so changing it later breaks their setup. The app picks the redirect URI from the origin it is served from. On any other origin, including `http://localhost:5173`, it shows a message pointing to `http://127.0.0.1:5173/` and does not start a login.
 
 **Scopes.** `playlist-read-private`, `playlist-read-collaborative`, `playlist-modify-private`, `playlist-modify-public`. Request nothing else: milestone 4 showed search works without `user-read-private`.
 
@@ -326,9 +333,11 @@ Spotify's guidelines apply because the app shows Spotify metadata.
 
 ## Hosting and deployment
 
-- **Host.** GitHub Pages, deployed by a GitHub Actions workflow on every push to `main`.
-- **Domain.** `playlistrepair.com` as the custom domain, with `www` redirecting to it and HTTPS enforced. `public/CNAME` keeps the setting across deploys.
-- **CI.** Every push runs typecheck, lint, unit tests and the build. Playwright runs before deploy.
+- **Host.** GitHub Pages, deployed by `.github/workflows/deploy.yml` on every push to `main`. It runs `npm run check`, then the landing page's Playwright test, then publishes `dist-site/` with the official Pages actions. The app is not deployed: v1 runs locally only.
+- **Landing page.** `site/` builds with `npm run build:site` (`vite.site.config.ts`) into `dist-site/`, separate from the app's `dist/`. It is static HTML and CSS with no script, and carries its own Content Security Policy meta tag (`default-src 'none'`; `style-src`, `img-src` and `media-src` `'self'`). The design tokens (`src/ui/tokens.css`) and the logo tile (`src/ui/logo.css`) are the app's own, imported by both. The logo drawing is rendered from `src/ui/LogoMark.tsx` at build time, and the favicon is built from that drawing and the tokens. `npm run site:images` makes `og.png` (1200x630) and `apple-touch-icon.png` from the favicon, and the results are committed. `e2e/landing.site.spec.ts` checks the built page loads, has no policy violations, every internal link resolves and the Open Graph tags are there. `npm run e2e` runs it last.
+- **Demo video.** A self-hosted MP4 with a poster: put `demo.mp4` and `poster.jpg` in `site/public/demo/` and the next build swaps the placeholder for the video.
+- **Domain.** `playlistrepair.com` as the custom domain, with `www` redirecting to it and HTTPS enforced. `site/public/CNAME` keeps the setting across deploys.
+- **CI.** Every push runs typecheck, lint, unit tests and both builds (`npm run check`).
 - **Moving hosts.** The domain is the fixed point. If headers are ever needed, Cloudflare Pages can serve the same build at the same URL.
 
 ## Build order
@@ -580,6 +589,7 @@ Real data from Jim's playlists, Oct 6, 2026: a local file has `is_local: true`, 
 - [x] Which image hosts does album art come from, for the Content Security Policy? (milestone 4) **Four hosts seen on Jim's playlists on Oct 6, 2026: `i.scdn.co` (album art), `mosaic.scdn.co`, `image-cdn-ak.spotifycdn.com` and `image-cdn-fa.spotifycdn.com`. The `-ak` and `-fa` names suggest more CDN variants exist, so milestone 7 should allow `https://*.scdn.co` and `https://*.spotifycdn.com` in `img-src`, not just these four.**
 - [ ] What request rate triggers a 429 in development mode? Set the throttle from what milestone 4 shows. *Partly answered on Oct 6, 2026. The rate limit was never hit: 0 rate limits over about 800 requests at 2 in flight, so the throttle stays at 2. The quota was hit: a first "Scan all" sent 437 requests with no limit, and a second one stopped with 2 `QUOTA_EXCEEDED` replies after 360 requests, having scanned 120 playlists. That is about 800 requests in one session. Spotify publishes no numbers or reset time. Scanning worked again when Jim tried on Oct 18, twelve days after the quota stop, so the reset is somewhere within that window. The exact reset time is still unknown.*
 - [ ] Is the hosted site acceptable under Developer Policy section VII.2, or should the project be self-run only?
+- [ ] Where will the hosted app live, and what will its production redirect URI be? `https://playlistrepair.com/` now serves the landing page, so the app cannot be at the root of that domain unless the landing page moves. Options include a subdomain such as `https://app.playlistrepair.com/` or a path such as `https://playlistrepair.com/app/`. **Decide before anyone registers a redirect URI**, because users register it in their own Spotify apps and it cannot change afterwards. Until then `PRODUCTION_REDIRECT_URI` in `src/config.ts` and the setup guide keep the old value, unchanged.
 
 ## Sources
 
