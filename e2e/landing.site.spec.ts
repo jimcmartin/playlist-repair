@@ -135,11 +135,13 @@ test('every internal link, asset and anchor resolves', async ({ page, request })
   // The preview server must answer a file that does not exist with 404, or the loop above proves nothing.
   expect((await request.get(`${BASE}/no-such-file.png`)).status()).toBe(404);
 
-  // Every other link points at the project's GitHub repository.
+  // Every other link points at the project's GitHub repository, or at the author's LinkedIn profile.
   const external = targets.filter((target) => /^https?:/.test(target) && !target.startsWith(SITE));
   expect(external.length).toBeGreaterThan(0);
   for (const url of external) {
-    expect(url, url).toMatch(/^https:\/\/github\.com\/jimcmartin\/playlist-repair(\/|$)/);
+    expect(url, url).toMatch(
+      /^(https:\/\/github\.com\/jimcmartin\/playlist-repair(\/|$)|https:\/\/www\.linkedin\.com\/in\/jimcmartin$)/,
+    );
   }
 });
 

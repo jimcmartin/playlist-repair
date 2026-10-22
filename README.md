@@ -8,10 +8,36 @@ also replace local files with streaming versions. It is a browser-only app with 
 each user connects it with their own Spotify client ID.
 
 **Status:** v1 runs locally on `127.0.0.1`. Setup, login, scanning, candidate search, review,
-apply, backup and verification all work. There is no hosted app yet and no privacy page. `https://playlistrepair.com/` is meant to serve a
-static landing page, built from `site/`.
+apply, backup and verification all work. The landing page, with a demo video, is live at
+<https://playlistrepair.com/>. There is no hosted app yet and no privacy page.
 
 [![Playlist Repair listing a playlist with three broken tracks and one local file. Watch the demo video on playlistrepair.com.](docs/readme.jpg)](https://playlistrepair.com/#demo)
+
+## Tech stack
+
+| Area               | What it uses                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| Language           | TypeScript 6 in strict mode                                                                      |
+| UI                 | React 19, with hand-written CSS and no router, state library or CSS framework                    |
+| Build              | Vite 8, with Node.js 24 for the tooling. The app itself runs entirely in the browser             |
+| Auth               | OAuth 2.0 Authorization Code with PKCE, written on the browser's Web Crypto API                  |
+| API                | Spotify Web API, in development mode                                                             |
+| Unit tests         | Vitest, with fakes for `fetch` and the Spotify client                                            |
+| End-to-end tests   | Playwright, against a mocked Spotify API and against the production build                        |
+| Code quality       | ESLint with typescript-eslint's strict type-checked rules, and Prettier                          |
+| Security           | A Content Security Policy that limits the built app to Spotify's two API hosts                   |
+| CI and hosting     | GitHub Actions checks every push and deploys the landing page to GitHub Pages, served over HTTPS |
+| AI-assisted coding | Claude Code, Anthropic's coding agent, wrote the code and tests from a written plan (see below)  |
+
+### How it was built
+
+The project was built with Claude Code, one milestone at a time, from a
+[technical plan](docs/technical-plan.md) written before any code. I set the scope, made the
+product and design decisions, reviewed each change, and tested every step that touches a real
+Spotify account by hand, on copies of my own playlists. Claude Code wrote the code and the tests
+for each milestone, ran the checks, and recorded in the plan what real data proved wrong, such as
+how Spotify handles local files and duplicate tracks. The commit history shows the order of work,
+from scaffold to matching engine to the safe apply step.
 
 ## How to use it
 
@@ -169,6 +195,11 @@ applying against a real account are checked by hand, on a copy of a playlist.
 
 The design, the build order and the questions still open are in the
 [technical plan](docs/technical-plan.md).
+
+## Author
+
+Jim Martin. [LinkedIn](https://www.linkedin.com/in/jimcmartin) ·
+[GitHub](https://github.com/jimcmartin)
 
 ## License
 
